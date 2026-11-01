@@ -27,6 +27,10 @@ class ComboPaperAdapter:
         self.events: list[ComboEvent] = []
         self.realized_gross_usdt = 0.0
         self.fees_paid_usdt = 0.0
+        self.funding_fees_usdt = 0.0
+        self.last_funding_ts_ms: int | None = None
+        self.last_level_action_ms: dict[str, int] = {}
+        self.last_gap_levels_skipped = 0
         self.last_mark: float | None = None
         self.last_quote_ts_ms: int | None = None
         self.initialized = False
@@ -76,6 +80,10 @@ class ComboPaperAdapter:
         self.events = [ComboEvent(**item) for item in raw.get("events", [])]
         self.realized_gross_usdt = float(raw.get("realized_gross_usdt", 0.0))
         self.fees_paid_usdt = float(raw.get("fees_paid_usdt", 0.0))
+        self.funding_fees_usdt = float(raw.get("funding_fees_usdt", 0.0))
+        self.last_funding_ts_ms = raw.get("last_funding_ts_ms")
+        self.last_level_action_ms = {str(k): int(v) for k, v in raw.get("last_level_action_ms", {}).items()}
+        self.last_gap_levels_skipped = int(raw.get("last_gap_levels_skipped", 0))
         self.last_mark = raw.get("last_mark")
         self.last_quote_ts_ms = raw.get("last_quote_ts_ms")
         self.initialized = bool(raw.get("initialized", False))
@@ -98,6 +106,8 @@ class ComboPaperAdapter:
             "fills": [asdict(fill) for fill in self.fills[-5000:]],
             "events": [asdict(event) for event in self.events[-2000:]],
             "realized_gross_usdt": self.realized_gross_usdt, "fees_paid_usdt": self.fees_paid_usdt,
+            "funding_fees_usdt": self.funding_fees_usdt, "last_funding_ts_ms": self.last_funding_ts_ms,
+            "last_level_action_ms": self.last_level_action_ms, "last_gap_levels_skipped": self.last_gap_levels_skipped,
             "last_mark": self.last_mark, "last_quote_ts_ms": self.last_quote_ts_ms,
             "initialized": self.initialized, "grid_seeded": self.grid_seeded,
             "grid_anchor_price": self.grid_anchor_price, "halted": self.halted,
@@ -149,6 +159,60 @@ class ComboPaperAdapter:
 
     def free_margin_usdt(self, mark: float | None = None) -> float:
         return self.equity_usdt(mark) - self.used_margin_usdt(mark) - self.reserved_buy_margin_usdt()
+
+    def free_margin_ratio(self, mark: float | None = None) -> float:
+        equity = self.equity_usdt(mark)
+        return self.free_margin_usdt(mark) / equity if equity > 0 else 0.0
+
+    def dca_guard_reason(self, mark: float) -> str | None:
+        if mark <= self.cfg.low_price * (1.0 + self.cfg.dca_low_boundary_buffer_pct):
+            return "LOW_PRICE_BUFFER"
+        if self.free_margin_ratio(mark) < self.cfg.min_free_margin_ratio:
+            return "FREE_MARGIN_BELOW_15_PERCENT"
+        return None
+
+    def cancel_buy_orders(self, now_ms: int, reason: str) -> int:
+        count = 0
+        for order in self.orders.values():
+            if order.active and order.side == "buy":
+                order.status = ComboOrderStatus.CANCELLED
+                order.updated_ts_ms = now_ms
+                order.reason = reason
+                self._event("order_cancelled", reason, now_ms, order.order_id,
+                            order.remaining_qty, order.price)
+                count += 1
+        if count:
+            self.save()
+        return count
+
+    def _level_action_allowed(self, level_index: int | None, now_ms: int) -> bool:
+        if level_index is None:
+            return True
+        key = str(level_index)
+        previous = self.last_level_action_ms.get(key)
+        if previous is not None and now_ms - previous < self.cfg.order_update_cooldown_ms:
+            return False
+        self.last_level_action_ms[key] = now_ms
+        return True
+
+    def accrue_funding(self, now_ms: int, mark: float) -> float:
+        if self.last_funding_ts_ms is None:
+            self.last_funding_ts_ms = now_ms
+            return 0.0
+        if now_ms <= self.last_funding_ts_ms:
+            return 0.0
+        periods = (now_ms - self.last_funding_ts_ms) // self.cfg.funding_interval_ms
+        if periods <= 0:
+            return 0.0
+        fee = self.position.qty * mark * self.cfg.estimated_funding_rate_8h * periods
+        self.last_funding_ts_ms += periods * self.cfg.funding_interval_ms
+        if fee > 0:
+            self.funding_fees_usdt += fee
+            self.fees_paid_usdt += fee
+            self._event("funding_fee", "Tahmini 8 saatlik LONG funding maliyeti", now_ms,
+                        qty=self.position.qty, price=mark)
+        self.save()
+        return fee
 
     def _reserved_for_lot(self, lot_id: str) -> float:
         return sum(
@@ -212,6 +276,10 @@ class ComboPaperAdapter:
                 self._event("order_rejected", "10x PAPER nominal maruziyet sınırı aşılırdı", now_ms,
                             qty=qty, price=price)
                 return None
+        if not self._level_action_allowed(level_index, now_ms):
+            self._event("order_throttled", "Aynı grid seviyesi için 200ms mikro cooldown", now_ms,
+                        qty=qty, price=price)
+            return None
         order = ComboOrder(
             order_id=self._new_id(), side=side, price=price, qty=qty, role=role,
             level_index=level_index, lot_id=lot_id, reduce_only=reduce_only,
@@ -259,6 +327,7 @@ class ComboPaperAdapter:
         self._event("base_filled", "PAPER market Base Order doldu; LONG lot açıldı",
                     now_ms, order_id, qty, quote.ask)
         self.initialized = True
+        self.last_funding_ts_ms = now_ms
         self.grid_anchor_price = quote.last
         self.grid_seeded = False
         self.last_mark = quote.last
@@ -388,7 +457,9 @@ class ComboPaperAdapter:
             "equity_usdt": self.equity_usdt(mark),
             "net_after_fees_usdt": self.realized_gross_usdt - self.fees_paid_usdt,
             "unrealized_gross_usdt": self.unrealized_gross_usdt(mark),
-            "fees_paid_usdt": self.fees_paid_usdt,
+            "fees_paid_usdt": self.fees_paid_usdt, "funding_fees_usdt": self.funding_fees_usdt,
+            "free_margin_ratio": self.free_margin_ratio(mark),
+            "last_gap_levels_skipped": self.last_gap_levels_skipped,
             "position_qty_btc": self.position.qty, "avg_entry_price": avg,
             "mark_price": mark, "tp_order": self.tp_order, "tp_active": tp_active,
             "hard_stop_price": self.cfg.hard_stop_price,
