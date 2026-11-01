@@ -62,7 +62,7 @@ if ! git -C "$ROOT" worktree list --porcelain | grep -Fqx "worktree $PUBLISH_DIR
     echo "Yayın worktree yolu mevcut fakat Git worktree değil: $PUBLISH_DIR" >&2
     exit 1
   fi
-  git -C "$ROOT" fetch origin main
+  git -C "$ROOT" fetch origin +refs/heads/main:refs/remotes/origin/main
   git -C "$ROOT" worktree add --detach "$PUBLISH_DIR" origin/main
 fi
 
