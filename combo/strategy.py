@@ -64,6 +64,10 @@ class ComboStrategy:
         level = self.grid.by_index(level_index)
         if level is None or (parent_order_id is None and self.paper.has_active_buy_at(level_index)):
             return
+        guard = self.paper.dca_guard_reason(self.paper.last_mark or level.price)
+        if guard:
+            self.paper._event("dca_paused", f"Yeni BUY emri risk guard nedeniyle atlandı: {guard}", now_ms, price=level.price)
+            return
         role = "sell_counter_buy" if parent_order_id else "dca_buy"
         self.paper.place_limit(
             side="buy", price=level.price, qty=self.cfg.order_qty_btc, role=role,
