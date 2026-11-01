@@ -24,6 +24,7 @@ def main():
     root = Path(args.state_dir)
     with RunnerLease(root / "runner.lock"):
         strategy = ComboStrategy(ComboConfig(), root=root)
+        strategy.persist_each_quote = not bool(args.dashboard_state)
         listener = ComboWebSocketListener(strategy)
         listener.start()
         started = time.monotonic()
@@ -42,6 +43,7 @@ def main():
                     "paper": strategy.paper.snapshot(),
                 }
                 if args.dashboard_state:
+                    strategy.paper.save()
                     write_dashboard_state(strategy, listener, args.dashboard_state)
                 print(json.dumps(result, sort_keys=True, allow_nan=False), flush=True)
                 if feed_status.get("feed", {}).get("ticks", 0) < 1 or strategy.paper.last_quote_ts_ms is None:
