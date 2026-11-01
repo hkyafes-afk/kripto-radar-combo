@@ -1,7 +1,7 @@
 name: COMBO public OKX PAPER smoke
 on:
   push:
-    branches: ["feature/risk-guards-live-paper"]
+    branches: ["feature/risk-guards-live-paper", "main"]
   pull_request:
   workflow_dispatch:
 permissions:
