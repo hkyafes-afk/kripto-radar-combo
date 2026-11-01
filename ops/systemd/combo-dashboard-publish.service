@@ -1,0 +1,11 @@
+[Unit]
+Description=Publish verified COMBO PAPER dashboard snapshot
+After=combo-paper.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/services/combo-paper
+ExecStart=/bin/bash %h/services/combo-paper/ops/publish-dashboard-state.sh
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
