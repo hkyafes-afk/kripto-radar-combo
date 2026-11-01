@@ -19,6 +19,7 @@ class ComboStrategy:
         self.grid = GridBuilder(self.cfg)
         self.paper = paper or ComboPaperAdapter(self.cfg, root=root)
         self.last_data_issue: str | None = None
+        self.persist_each_quote = True
 
     def _tp_price(self) -> float | None:
         avg = self.paper.position.avg_entry_price
@@ -286,5 +287,6 @@ class ComboStrategy:
             self._handle_tp(quote, now)
             return {"status": "tp_triggered", **self.paper.snapshot()}
 
-        self.paper.save()
+        if self.persist_each_quote:
+            self.paper.save()
         return {"status": "active", **self.paper.snapshot()}
