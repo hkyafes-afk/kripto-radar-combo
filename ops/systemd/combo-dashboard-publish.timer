@@ -1,0 +1,11 @@
+[Unit]
+Description=Publish COMBO PAPER dashboard snapshot every minute
+
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=60
+AccuracySec=5
+Unit=combo-dashboard-publish.service
+
+[Install]
+WantedBy=timers.target
