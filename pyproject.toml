@@ -1,0 +1,12 @@
+[project]
+name="kripto-radar-combo"
+version="0.1.0"
+requires-python=">=3.11"
+dependencies=["websocket-client>=1.8,<2"]
+[project.optional-dependencies]
+test=["pytest>=8,<9"]
+[tool.pytest.ini_options]
+testpaths=["tests"]
+
+[tool.setuptools.packages.find]
+include = ["combo*", "persistence*", "runner*"]
