@@ -7,3 +7,6 @@ dependencies=["websocket-client>=1.8,<2"]
 test=["pytest>=8,<9"]
 [tool.pytest.ini_options]
 testpaths=["tests"]
+
+[tool.setuptools.packages.find]
+include = ["combo*", "persistence*", "runner*"]
