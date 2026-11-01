@@ -6,8 +6,9 @@ from combo.strategy import ComboStrategy
 from combo.feed import ComboWebSocketListener
 from runner.lifecycle import RunnerLease
 def main():
- p=argparse.ArgumentParser();p.add_argument("--state-dir",default="./state");a=p.parse_args();root=Path(a.state_dir);strategy=ComboStrategy(ComboConfig(),root=root)
+ p=argparse.ArgumentParser();p.add_argument("--state-dir",default="./state");a=p.parse_args();root=Path(a.state_dir)
  with RunnerLease(root/"runner.lock"):
+  strategy=ComboStrategy(ComboConfig(),root=root)
   listener=ComboWebSocketListener(strategy);listener.start()
   try:
    while True:time.sleep(1)
