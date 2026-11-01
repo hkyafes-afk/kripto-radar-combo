@@ -21,3 +21,24 @@ def test_paper_checkpoint_recovers_from_journal_when_snapshot_missing(tmp_path):
  from combo.config import ComboConfig
  from combo.paper import ComboPaperAdapter
  p=ComboPaperAdapter(ComboConfig(),root=tmp_path);p.save();(tmp_path/"combo_paper.json").unlink();q=ComboPaperAdapter(ComboConfig(),root=tmp_path);assert q.initialized is False and q.position.qty==0
+
+
+def test_paper_checkpoint_restores_position_when_snapshot_is_lost(tmp_path):
+ from combo.config import ComboConfig
+ from combo.models import ComboQuote
+ from combo.strategy import ComboStrategy
+ now=1_800_000_000_000;quote=ComboQuote("BTC-USDT-SWAP",77999.9,78000.1,78000,now,.05,.05)
+ first=ComboStrategy(ComboConfig(),root=tmp_path);first.on_quote(quote,now_ms=now);assert first.paper.position.qty==pytest.approx(.013)
+ (tmp_path/"combo_paper.json").unlink()
+ recovered=ComboStrategy(ComboConfig(),root=tmp_path);assert recovered.paper.position.qty==pytest.approx(.013);assert recovered.paper.initialized
+
+def test_duplicate_buy_intent_returns_existing_order():
+ from combo.config import ComboConfig
+ from combo.paper import ComboPaperAdapter
+ p=ComboPaperAdapter(ComboConfig());one=p.place_limit(side="buy",price=77000,qty=.013,role="dca_buy",level_index=10,now_ms=10)
+ two=p.place_limit(side="buy",price=77000,qty=.013,role="dca_buy",level_index=10,now_ms=11)
+ assert one is two and len(p.orders)==1
+
+def test_stale_runner_lock_is_not_automatically_stolen(tmp_path):
+ p=tmp_path/"runner.lock";p.write_text('{"pid":1,"host":"dead-host"}')
+ with pytest.raises(AlreadyRunning):RunnerLease(p).acquire()
