@@ -1,7 +1,6 @@
 [Unit]
 Description=Publish verified COMBO PAPER dashboard snapshot
 After=combo-paper.service
-Wants=combo-paper.service
 
 [Service]
 Type=oneshot
