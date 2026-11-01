@@ -44,7 +44,7 @@ def main():
                 if args.dashboard_state:
                     write_dashboard_state(strategy, listener, args.dashboard_state)
                 print(json.dumps(result, sort_keys=True, allow_nan=False), flush=True)
-                if feed_status.get("ticks", 0) < 1 or strategy.paper.last_quote_ts_ms is None:
+                if feed_status.get("feed", {}).get("ticks", 0) < 1 or strategy.paper.last_quote_ts_ms is None:
                     raise SystemExit("No valid OKX public ticker was processed during smoke window")
             else:
                 while True:
