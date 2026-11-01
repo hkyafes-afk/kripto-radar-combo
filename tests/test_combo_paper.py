@@ -65,6 +65,8 @@ def test_stale_or_duplicate_ticks_never_create_extra_fills():
     count = len(strategy.paper.fills)
     duplicate = strategy.on_quote(quote(ts=NOW), now_ms=NOW + 1)
     assert duplicate["status"] == "duplicate_quote"
+    out_of_order = strategy.on_quote(quote(ts=NOW - 1), now_ms=NOW + 2)
+    assert out_of_order["status"] == "duplicate_quote"
     assert len(strategy.paper.fills) == count
 
 
