@@ -13,6 +13,8 @@ from typing import Any
 from .config import ComboConfig
 from .models import ComboEvent, ComboFill, ComboOrder, ComboOrderStatus, ComboQuote
 from .position import ComboPosition, LongLot
+from persistence.ledger import EventLedger
+from persistence.recovery import RecoveryManager
 
 
 class ComboPaperAdapter:
@@ -35,6 +37,8 @@ class ComboPaperAdapter:
         self.tp_triggered = False
         self.tp_order: dict[str, Any] | None = None
         self.next_order_id = 1
+        self.ledger = EventLedger(self.root / "events.jsonl") if self.root is not None else None
+        self.recovery = RecoveryManager(self.ledger) if self.ledger is not None else None
         self._load()
 
     @property
@@ -47,12 +51,19 @@ class ComboPaperAdapter:
 
     def _load(self) -> None:
         path = self.state_path
-        if path is None or not path.exists():
+        if path is None:
             return
         try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as exc:
-            raise RuntimeError(f"COMBO PAPER defteri okunamadı; sıfırdan başlatılmadı: {exc}") from exc
+            if self.recovery is not None:
+                raw = self.recovery.recover(path)
+            elif path.exists():
+                raw = json.loads(path.read_text(encoding="utf-8"))
+            else:
+                raw = None
+        except Exception as exc:
+            raise RuntimeError(f"COMBO PAPER recovery başarısız; sıfırdan başlatılmadı: {exc}") from exc
+        if raw is None:
+            return
         if raw.get("schema_version") != 1 or raw.get("config_signature") != self._signature():
             raise RuntimeError("COMBO PAPER defteri sürüm/ayar uyuşmazlığı; otomatik sıfırlama yapılmadı")
         self.position = ComboPosition.from_dict(raw.get("lots") or [])
@@ -93,13 +104,20 @@ class ComboPaperAdapter:
             "halt_reason": self.halt_reason, "tp_triggered": self.tp_triggered,
             "tp_order": self.tp_order, "next_order_id": self.next_order_id,
         }
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(raw, ensure_ascii=False, separators=(",", ":"), allow_nan=False), encoding="utf-8")
-        tmp.replace(path)
+        if self.recovery is not None:
+            from uuid import uuid4
+            self.recovery.write_checkpoint(path, raw, f"checkpoint-{uuid4().hex}")
+        else:
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(raw, ensure_ascii=False, separators=(",", ":"), allow_nan=False), encoding="utf-8")
+            tmp.replace(path)
 
     def _event(self, kind: str, message: str, now_ms: int, order_id: str | None = None,
                qty: float | None = None, price: float | None = None) -> None:
         self.events.append(ComboEvent(now_ms, kind, message, order_id, qty, price))
+        if self.ledger is not None:
+            from uuid import uuid4
+            self.ledger.append(f"event-{uuid4().hex}", kind, {"ts_ms": now_ms, "message": message, "order_id": order_id, "qty": qty, "price": price})
         self.events = self.events[-2000:]
 
     def _new_id(self) -> str:
