@@ -66,8 +66,11 @@ class ComboStrategy:
             return
         guard = self.paper.dca_guard_reason(self.paper.last_mark or level.price)
         if guard:
-            self.paper._event("dca_paused", f"Yeni BUY emri risk guard nedeniyle atlandı: {guard}", now_ms, price=level.price)
+            if self.paper.last_dca_guard_reason != guard:
+                self.paper._event("dca_paused", f"Yeni BUY emri risk guard nedeniyle atlandı: {guard}", now_ms, price=level.price)
+            self.paper.last_dca_guard_reason = guard
             return
+        self.paper.last_dca_guard_reason = None
         role = "sell_counter_buy" if parent_order_id else "dca_buy"
         self.paper.place_limit(
             side="buy", price=level.price, qty=self.cfg.order_qty_btc, role=role,
@@ -262,8 +265,12 @@ class ComboStrategy:
         dca_guard = self.paper.dca_guard_reason(quote.last)
         if dca_guard:
             self.paper.cancel_buy_orders(now, f"DCA paused by risk guard: {dca_guard}")
-            self.paper._event("dca_paused", f"Yeni DCA girişleri durduruldu: {dca_guard}", now,
-                              price=quote.last)
+            if self.paper.last_dca_guard_reason != dca_guard:
+                self.paper._event("dca_paused", f"Yeni DCA girişleri durduruldu: {dca_guard}", now,
+                                  price=quote.last)
+            self.paper.last_dca_guard_reason = dca_guard
+        else:
+            self.paper.last_dca_guard_reason = None
 
         tp = self.paper.tp_order
         if tp and quote.bid >= float(tp["price"]):
