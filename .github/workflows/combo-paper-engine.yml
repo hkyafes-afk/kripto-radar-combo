@@ -1,8 +1,6 @@
 name: COMBO GitHub Actions PAPER engine
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
