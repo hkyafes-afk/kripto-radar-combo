@@ -31,6 +31,7 @@ class ComboPaperAdapter:
         self.last_funding_ts_ms: int | None = None
         self.last_level_action_ms: dict[str, int] = {}
         self.last_gap_levels_skipped = 0
+        self.last_dca_guard_reason: str | None = None
         self.last_mark: float | None = None
         self.last_quote_ts_ms: int | None = None
         self.initialized = False
@@ -84,6 +85,7 @@ class ComboPaperAdapter:
         self.last_funding_ts_ms = raw.get("last_funding_ts_ms")
         self.last_level_action_ms = {str(k): int(v) for k, v in raw.get("last_level_action_ms", {}).items()}
         self.last_gap_levels_skipped = int(raw.get("last_gap_levels_skipped", 0))
+        self.last_dca_guard_reason = raw.get("last_dca_guard_reason")
         self.last_mark = raw.get("last_mark")
         self.last_quote_ts_ms = raw.get("last_quote_ts_ms")
         self.initialized = bool(raw.get("initialized", False))
@@ -108,6 +110,7 @@ class ComboPaperAdapter:
             "realized_gross_usdt": self.realized_gross_usdt, "fees_paid_usdt": self.fees_paid_usdt,
             "funding_fees_usdt": self.funding_fees_usdt, "last_funding_ts_ms": self.last_funding_ts_ms,
             "last_level_action_ms": self.last_level_action_ms, "last_gap_levels_skipped": self.last_gap_levels_skipped,
+            "last_dca_guard_reason": self.last_dca_guard_reason,
             "last_mark": self.last_mark, "last_quote_ts_ms": self.last_quote_ts_ms,
             "initialized": self.initialized, "grid_seeded": self.grid_seeded,
             "grid_anchor_price": self.grid_anchor_price, "halted": self.halted,
