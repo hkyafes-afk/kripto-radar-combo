@@ -7,7 +7,8 @@ from pathlib import Path
 from combo.config import ComboConfig
 from combo.strategy import ComboStrategy
 from combo.feed import ComboWebSocketListener
-from runner.lifecycle import RunnerLease\nfrom runner.dashboard_state import write_dashboard_state
+from runner.lifecycle import RunnerLease
+from runner.dashboard_state import write_dashboard_state
 
 
 def main():
@@ -15,7 +16,9 @@ def main():
     parser.add_argument("--state-dir", default="./state")
     parser.add_argument("--smoke-seconds", type=int, default=0,
                         help="Exit after this many seconds; requires at least one real OKX ticker.")
-    parser.add_argument("--dashboard-state", default=None,\n                        help="Atomically write a read-only dashboard JSON snapshot after a bounded run.")\n    args = parser.parse_args()
+    parser.add_argument("--dashboard-state", default=None,
+                        help="Atomically write a read-only dashboard JSON snapshot after a bounded run.")
+    args = parser.parse_args()
     if args.smoke_seconds < 0 or args.smoke_seconds > 600:
         parser.error("--smoke-seconds must be between 0 and 600")
     root = Path(args.state_dir)
@@ -38,7 +41,9 @@ def main():
                     "last_error": listener.last_error,
                     "paper": strategy.paper.snapshot(),
                 }
-                if args.dashboard_state:\n                    write_dashboard_state(strategy, listener, args.dashboard_state)\n                print(json.dumps(result, sort_keys=True, allow_nan=False), flush=True)
+                if args.dashboard_state:
+                    write_dashboard_state(strategy, listener, args.dashboard_state)
+                print(json.dumps(result, sort_keys=True, allow_nan=False), flush=True)
                 if feed_status.get("ticks", 0) < 1 or strategy.paper.last_quote_ts_ms is None:
                     raise SystemExit("No valid OKX public ticker was processed during smoke window")
             else:
