@@ -69,10 +69,13 @@ def test_funding_fee_posts_each_eight_hour_period_and_hits_net_equity():
 def test_funding_and_throttle_state_survive_restart(tmp_path):
     p=ComboPaperAdapter(ComboConfig(),root=tmp_path);p.last_mark=78000
     p.last_funding_ts_ms=NOW;p.last_level_action_ms["9"]=NOW
+    p.funding_fees_usdt=1.23;p.fees_paid_usdt=1.23
     p.save()
     recovered=ComboPaperAdapter(ComboConfig(),root=tmp_path)
     assert recovered.last_funding_ts_ms==NOW
     assert recovered.last_level_action_ms["9"]==NOW
+    assert recovered.funding_fees_usdt==pytest.approx(1.23)
+    assert recovered.fees_paid_usdt==pytest.approx(1.23)
 
 def test_invalid_risk_guard_configuration_is_rejected():
     with pytest.raises(ValueError):ComboConfig(order_update_cooldown_ms=199)
