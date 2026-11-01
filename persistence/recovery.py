@@ -20,9 +20,10 @@ class RecoveryManager:
  def recover(self,path):
   rows=self.ledger.verify();checkpoints=[r for r in rows if r["kind"]=="state_checkpoint"];target=Path(path)
   if not checkpoints:
-   if target.exists():raise RecoveryError("snapshot without journal checkpoint")
+   if target.exists() or rows:raise RecoveryError("state or journal events exist without a durable checkpoint")
    return None
   latest=checkpoints[-1]
+  if latest["seq"] != len(rows):raise RecoveryError("uncheckpointed journal tail; fail closed")
   if target.exists():
    try:s=json.loads(target.read_text(encoding="utf-8"))
    except Exception as e:raise RecoveryError("snapshot unreadable; fail closed") from e
