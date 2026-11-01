@@ -80,3 +80,10 @@ def test_funding_and_throttle_state_survive_restart(tmp_path):
 def test_invalid_risk_guard_configuration_is_rejected():
     with pytest.raises(ValueError):ComboConfig(order_update_cooldown_ms=199)
     with pytest.raises(ValueError):ComboConfig(min_free_margin_ratio=0)
+
+def test_persistent_dca_guard_does_not_spam_event_journal():
+    s=ComboStrategy();s.on_quote(q(78000),now_ms=NOW)
+    mark=s.cfg.low_price*1.01
+    s.on_quote(q(mark,ts=NOW+1000),now_ms=NOW+1000)
+    s.on_quote(q(mark,ts=NOW+2000),now_ms=NOW+2000)
+    assert sum(e.kind=="dca_paused" for e in s.paper.events)==1
