@@ -30,8 +30,8 @@ After reviewing and merging the VM publisher PR:
 
 1. On the VM, run `bash ops/install-user-services.sh` to install user units. This only installs files; it does not start or enable the engine.
 2. Run `bash ops/setup-deploy-key.sh`. Add the displayed **public** key under repository Settings → Deploy keys, enable write access, and never share the private key.
-3. Enable the publisher timer with `systemctl --user enable --now combo-dashboard-publish.timer`.
-4. Verify one publisher run with `systemctl --user start combo-dashboard-publish.service` and inspect `systemctl --user status combo-dashboard-publish.service --no-pager`.
-5. Only after the SSH publish succeeds, start the PAPER engine with `systemctl --user enable --now combo-paper.service`.
+3. Test SSH authentication with `ssh -T git@github-combo-paper`. GitHub may return exit code 1 while printing its normal “successfully authenticated” message; do not paste or share the private key.
+4. Start the PAPER engine with `systemctl --user enable --now combo-paper.service`.
+5. Enable the publisher timer with `systemctl --user enable --now combo-dashboard-publish.timer`, then run one immediate publish with `systemctl --user start combo-dashboard-publish.service` and inspect `systemctl --user status combo-dashboard-publish.service --no-pager`.
 
 The dashboard's market ticker remains directly connected to OKX WebSocket. PAPER wallet/order/fill/event snapshots are refreshed approximately once per minute; this is not millisecond-level dashboard state. If the public feed is unhealthy, the ticker is stale, or the journal/checkpoint fails verification, the publisher refuses to publish and the dashboard eventually marks the last snapshot stale. No private API credentials or live orders are used.
