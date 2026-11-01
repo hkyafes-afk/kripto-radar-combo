@@ -80,7 +80,7 @@ $('tradeDetail').addEventListener('click',e=>{if(e.target===$('tradeDetail')){$(
 function loadPaperState(){
  fetch(STATE_URL+"?v="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("state.json HTTP "+r.status);return r.json()}).then(s=>{
   if(s.schema_version!==1||s.execution_mode!=="PAPER_ONLY"||s.symbol!=="BTC-USDT-SWAP"||s.private_api_enabled!==false||s.live_order_submission!==false)throw Error("State sözleşmesi/güvenlik doğrulaması başarısız");
-  paperState=s;const p=s.paper||{},age=Math.max(0,Date.now()-Number(s.generated_at_ms||0)),stale=age>600000;
+  paperState=s;const p=s.paper||{},age=Math.max(0,Date.now()-Number(s.generated_at_ms||0)),stale=age>120000;
   $('equity').textContent=fmt(p.equity_usdt)+" USDT";$('pnl').textContent=fmt(Number(p.net_after_fees_usdt||0)+Number(p.unrealized_gross_usdt||0))+" USDT";
   $('position').textContent=fmt(p.position_qty_btc,6)+" BTC";$('activeOrders').textContent=String(p.active_orders??"—");
   $('equity').className=$('pnl').className=$('position').className=$('activeOrders').className="";
