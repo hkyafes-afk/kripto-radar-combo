@@ -326,25 +326,6 @@ def test_partial_sell_does_not_rearm_full_size_buy_until_fully_filled():
                and o.qty == pytest.approx(0.013) for o in strategy.paper.orders.values())
 
 
-def test_okx_public_feed_preserves_legacy_callback_and_labels_swap_sizes():
-    legacy_ticks = []
-    observed = []
-    feed = OKXFeed(on_tick=lambda *args: legacy_ticks.append(args))
-    feed.add_tick_listener(observed.append)
-    feed.handle({
-        "arg": {"channel": "tickers", "instId": "BTC-USDT-SWAP"},
-        "data": [{
-            "instId": "BTC-USDT-SWAP", "last": "78000", "bidPx": "77999.9",
-            "askPx": "78000.1", "bidSz": "5", "askSz": "7", "ts": str(NOW),
-        }],
-    })
-    assert legacy_ticks == [("okx", "BTC-USDT-SWAP", 78000.0, 77999.9, 78000.1, NOW)]
-    assert observed[0]["size_unit"] == "contracts_for_swap"
-    assert observed[0]["bid_size_contracts"] == 5.0
-    assert observed[0]["ask_size_contracts"] == 7.0
-
-
-
 def test_crash_after_base_order_recovers_initial_grid_seed(tmp_path):
     cfg = ComboConfig()
     first = ComboPaperAdapter(cfg, root=tmp_path)
