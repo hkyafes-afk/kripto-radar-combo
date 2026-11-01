@@ -1,0 +1,53 @@
+name: COMBO GitHub Actions PAPER engine
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: combo-paper-engine
+  cancel-in-progress: false
+
+jobs:
+  paper-cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Checkout persisted PAPER ledger
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install COMBO
+        run: python -m pip install -e .
+
+      - name: Run bounded public-feed PAPER cycle
+        run: |
+          python -m runner.main \
+            --state-dir ./runtime \
+            --smoke-seconds 210 \
+            --dashboard-state ./state.json
+
+      - name: Publish verified state and durable ledger
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runtime/combo_paper.json runtime/events.jsonl state.json
+          if git diff --cached --quiet; then
+            echo "No state changes to publish."
+          else
+            git commit -m "chore(paper): publish verified runner state"
+            git push origin HEAD:main
+          fi
