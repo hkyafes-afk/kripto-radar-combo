@@ -22,6 +22,11 @@ class ComboConfig:
     maker_fee_pct: float = 0.02
     taker_fee_pct: float = 0.05
     stop_slippage_bps: float = 10.0
+    dca_low_boundary_buffer_pct: float = 0.02
+    min_free_margin_ratio: float = 0.15
+    order_update_cooldown_ms: int = 200
+    estimated_funding_rate_8h: float = 0.0001
+    funding_interval_ms: int = 8 * 60 * 60 * 1000
     execution_mode: str = "paper"
     private_api_enabled: bool = False
     live_order_submission: bool = False
@@ -46,6 +51,15 @@ class ComboConfig:
             raise ValueError("Stop ve kayma ayarları sonlu olmalı")
         if self.hard_stop_below_low_pct < 0 or self.stop_slippage_bps < 0:
             raise ValueError("Stop ve kayma ayarları negatif olamaz")
+        if (not math.isfinite(self.dca_low_boundary_buffer_pct)
+                or not 0 <= self.dca_low_boundary_buffer_pct < 1
+                or not math.isfinite(self.min_free_margin_ratio)
+                or not 0 < self.min_free_margin_ratio < 1
+                or self.order_update_cooldown_ms < 200
+                or not math.isfinite(self.estimated_funding_rate_8h)
+                or self.estimated_funding_rate_8h < 0
+                or self.funding_interval_ms <= 0):
+            raise ValueError("Risk guard / funding parameters invalid")
         if (not math.isfinite(self.maker_fee_pct) or not math.isfinite(self.taker_fee_pct)
                 or self.maker_fee_pct < 0 or self.taker_fee_pct < 0):
             raise ValueError("Fee yüzdeleri sonlu ve negatif olmayan değerler olmalı")

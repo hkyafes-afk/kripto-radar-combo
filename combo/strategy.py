@@ -64,6 +64,13 @@ class ComboStrategy:
         level = self.grid.by_index(level_index)
         if level is None or (parent_order_id is None and self.paper.has_active_buy_at(level_index)):
             return
+        guard = self.paper.dca_guard_reason(self.paper.last_mark or level.price)
+        if guard:
+            if self.paper.last_dca_guard_reason != guard:
+                self.paper._event("dca_paused", f"Yeni BUY emri risk guard nedeniyle atlandı: {guard}", now_ms, price=level.price)
+            self.paper.last_dca_guard_reason = guard
+            return
+        self.paper.last_dca_guard_reason = None
         role = "sell_counter_buy" if parent_order_id else "dca_buy"
         self.paper.place_limit(
             side="buy", price=level.price, qty=self.cfg.order_qty_btc, role=role,
@@ -188,6 +195,21 @@ class ComboStrategy:
             return {"status": "duplicate_quote", **self.paper.snapshot()}
         self.paper.last_quote_ts_ms = quote.ts_ms
         self.last_data_issue = None
+        previous_mark = self.paper.last_mark
+        if previous_mark is not None and self.paper.initialized:
+            crossed = [level for level in self.grid.levels
+                       if min(previous_mark, quote.last) < level.price <= max(previous_mark, quote.last)]
+            self.paper.last_gap_levels_skipped = max(0, len(crossed) - 1)
+            if self.paper.last_gap_levels_skipped >= 1:
+                self.paper._event(
+                    "gap_quote",
+                    f"{self.paper.last_gap_levels_skipped} grid level crossed; PAPER execution uses current BBO only",
+                    now, qty=float(self.paper.last_gap_levels_skipped), price=quote.last,
+                )
+        else:
+            self.paper.last_gap_levels_skipped = 0
+        if self.paper.initialized:
+            self.paper.accrue_funding(quote.ts_ms, previous_mark or quote.last)
         self.paper.last_mark = quote.last
 
         if self.paper.halt_reason == "HARD_STOP":
@@ -239,6 +261,16 @@ class ComboStrategy:
         self._reconcile_order_intents(now)
         if self._tp_needs_refresh():
             self._refresh_tp(now)
+
+        dca_guard = self.paper.dca_guard_reason(quote.last)
+        if dca_guard:
+            self.paper.cancel_buy_orders(now, f"DCA paused by risk guard: {dca_guard}")
+            if self.paper.last_dca_guard_reason != dca_guard:
+                self.paper._event("dca_paused", f"Yeni DCA girişleri durduruldu: {dca_guard}", now,
+                                  price=quote.last)
+            self.paper.last_dca_guard_reason = dca_guard
+        else:
+            self.paper.last_dca_guard_reason = None
 
         tp = self.paper.tp_order
         if tp and quote.bid >= float(tp["price"]):

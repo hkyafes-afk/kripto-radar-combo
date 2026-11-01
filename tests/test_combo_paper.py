@@ -141,7 +141,21 @@ def test_sell_grid_realizes_lot_pnl_and_rearms_lower_buy():
                     if o.active and o.side == "buy"
                     and o.parent_order_id in {sell.order_id for sell in filled_sells}]
     assert len(filled_sells) == 2
+    # Both SELL fills request the same counter grid level. The first intent is
+    # accepted; the second is deferred by the 200ms per-level micro cooldown.
+    assert len(counter_buys) == 1
+    deferred = next(sell for sell in filled_sells
+                    if not any(o.parent_order_id == sell.order_id for o in counter_buys))
+    strategy.on_quote(
+        quote(last=sell_level, bid=sell_level, ask=sell_level + 0.2,
+              bid_size=0.05, ask_size=0.05, ts=NOW + 3_000),
+        now_ms=NOW + 3_000,
+    )
+    counter_buys = [o for o in strategy.paper.orders.values()
+                    if o.active and o.side == "buy"
+                    and o.parent_order_id in {sell.order_id for sell in filled_sells}]
     assert len(counter_buys) == 2
+    assert any(o.parent_order_id == deferred.order_id for o in counter_buys)
     assert sum(o.qty for o in counter_buys) == pytest.approx(0.026)
     assert all(o.reduce_only for o in strategy.paper.orders.values() if o.side == "sell")
 

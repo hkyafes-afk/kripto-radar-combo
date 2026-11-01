@@ -1,0 +1,30 @@
+name: COMBO public OKX PAPER smoke
+on:
+  push:
+    branches: ["feature/risk-guards-live-paper", "main"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deterministic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[test]'
+      - run: python -m pytest -q
+  public-okx-paper-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e .
+      - name: Connect to real public OKX ticker for 45 seconds (PAPER only)
+        run: python -m runner.main --state-dir "$(mktemp -d)" --smoke-seconds 45

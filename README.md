@@ -14,3 +14,7 @@ Independent BTC-USDT-SWAP grid service, PAPER-only.
 Python 3.11+: install with python -m pip install -e .[test], run tests with python -m pytest -q, start with python -m runner.main --state-dir ./state.
 
 No private API keys are used. Live execution is intentionally unsupported.
+
+## PAPER risk guards
+
+See [docs/RISK_GUARDS.md](docs/RISK_GUARDS.md) for the lower-band DCA pause, 15% free-margin threshold, BBO-only gap handling, 200ms per-level cooldown and estimated 8-hour LONG funding charge. Funding is a configurable simulation estimate, not live OKX funding data.
