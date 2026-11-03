@@ -1,0 +1,14 @@
+# Sadece state.json yayınlanır; başka hiçbir dosya servis edilmez.
+35-209-41-139.sslip.io {
+	@state path /state.json
+	handle @state {
+		root * {$HOME}/services/combo-paper
+		header Access-Control-Allow-Origin "https://hkyafes-afk.github.io"
+		header Cache-Control "no-store"
+		header X-Content-Type-Options "nosniff"
+		file_server
+	}
+	handle {
+		respond "not found" 404
+	}
+}
