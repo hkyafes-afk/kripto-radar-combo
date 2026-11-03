@@ -135,7 +135,7 @@ function loadPaperState(){
   $('updated').textContent='PAPER '+stamp(s.generated_at_ms);
  }).catch(e=>{ $('feedStatus').textContent='PAPER STATE YOK';$('feedStatus').style.color='var(--amber)';$('change').textContent='PAPER state okunamadı: '+e.message; });
 }
-loadPaperState();setInterval(loadPaperState,20000);loadCandles();
+loadPaperState();setInterval(loadPaperState,10000);loadCandles();
 
 async function loadCandles(){if(chartLoading)return;chartLoading=true;$('chartState').textContent='OKX mumları yükleniyor…';try{const res=await fetch('https://www.okx.com/api/v5/market/candles?instId=BTC-USDT-SWAP&bar='+encodeURIComponent(chartBar)+'&limit=300',{cache:'no-store'});if(!res.ok)throw Error('OKX HTTP '+res.status);const body=await res.json();if(body.code!=='0'||!Array.isArray(body.data))throw Error(body.msg||'OKX mum verisi alınamadı');candles=body.data.map(a=>({t:Number(a[0]),o:Number(a[1]),h:Number(a[2]),l:Number(a[3]),c:Number(a[4])})).filter(k=>[k.t,k.o,k.h,k.l,k.c].every(Number.isFinite)).reverse();$('chartState').textContent='OKX '+chartBar+' · '+candles.length+' mum';draw()}catch(e){$('chartState').textContent='Grafik verisi alınamadı';$('chartSource').textContent='OKX bağlantı hatası'}finally{chartLoading=false}}
 function updateCandle(row){if(!Array.isArray(row)||row.length<5)return;const k={t:Number(row[0]),o:Number(row[1]),h:Number(row[2]),l:Number(row[3]),c:Number(row[4])};if(![k.t,k.o,k.h,k.l,k.c].every(Number.isFinite))return;const last=candles[candles.length-1];if(last&&last.t===k.t)candles[candles.length-1]=k;else if(!last||k.t>last.t)candles.push(k);if(candles.length>500)candles.shift();$('chartState').textContent='OKX '+chartBar+' · canlı mum';draw()}
