@@ -1,0 +1,12 @@
+[Unit]
+Description=Serve COMBO PAPER state.json over HTTPS (read-only)
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/caddy run --config %h/services/combo-paper/ops/serve/Caddyfile --adapter caddyfile
+Restart=always
+RestartSec=3
+NoNewPrivileges=false
+
+[Install]
+WantedBy=default.target
