@@ -17,4 +17,4 @@ systemctl --user daemon-reload
 systemctl --user enable --now combo-state-serve.service
 systemctl --user restart combo-paper.service
 sleep 5
-curl -sS -o /dev/null -w "HTTPS state.json: %{http_code}\n" https://35-199-41-139.sslip.io/state.json
+curl -sS -o /dev/null -w "HTTPS state.json: %{http_code}\n" https://35-209-41-139.sslip.io/state.json
