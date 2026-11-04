@@ -1,5 +1,5 @@
 # Sadece state.json yayınlanır; başka hiçbir dosya servis edilmez.
-35-209-41-139.sslip.io {
+34-187-114-109.sslip.io {
 	@state path /state.json
 	handle @state {
 		root * {$HOME}/services/combo-paper
