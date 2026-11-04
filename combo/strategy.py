@@ -26,6 +26,9 @@ class ComboStrategy:
             self.grid = GridBuilder(self.cfg)
         self.cycle_restart = False
         self.cycle_cooldown_ms = 60_000
+        self.drop_guard_pct = 0.0
+        self.drop_guard_window_ms = 3_600_000
+        self._px_hist: list[tuple[int, float]] = []
         self.lot_equity_fraction = 0.0
 
     def _tp_price(self) -> float | None:
@@ -186,6 +189,20 @@ class ComboStrategy:
         last = self.paper.fills[-1].ts_ms if self.paper.fills else 0
         return now_ms - last >= self.cycle_cooldown_ms
 
+    def _track_price(self, ts_ms: int, px: float) -> None:
+        h = self._px_hist
+        if not h or ts_ms - h[-1][0] >= 15_000:
+            h.append((ts_ms, px))
+        cut = ts_ms - self.drop_guard_window_ms
+        while h and h[0][0] < cut:
+            h.pop(0)
+
+    def _sharp_drop(self, last: float) -> bool:
+        if self.drop_guard_pct <= 0 or not self._px_hist:
+            return False
+        top = max(px for _, px in self._px_hist)
+        return top > 0 and (top - last) / top >= self.drop_guard_pct
+
     def _recenter(self, quote: ComboQuote, now_ms: int) -> None:
         import dataclasses
         c = self.cfg
@@ -248,9 +265,18 @@ class ComboStrategy:
             self._handle_hard_stop(quote, now)
             return {"status": "halted_hard_stop", **self.paper.snapshot()}
 
+        self._track_price(now, quote.last)
         if (self.cycle_restart and self.paper.halted and self.paper.halt_reason == "MAIN_TP"
                 and self._cycle_cooldown_over(now)):
-            self.paper.reset_cycle(now)
+            if self._sharp_drop(quote.last):
+                if not getattr(self, "_drop_wait_logged", False):
+                    self.paper._event("cycle_wait_drop", "Sert düşüş var; yeni döngü fiyat sakinleşene kadar bekliyor",
+                                      now, price=quote.last)
+                    self.paper.save()
+                    self._drop_wait_logged = True
+            else:
+                self._drop_wait_logged = False
+                self.paper.reset_cycle(now)
 
         if self.paper.halted:
             return {"status": "halted", **self.paper.snapshot()}

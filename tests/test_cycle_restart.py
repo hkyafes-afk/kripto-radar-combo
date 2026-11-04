@@ -71,3 +71,22 @@ def test_cooldown_blocks_restart(tmp_path):
     s.cycle_cooldown_ms = 10 ** 15
     res = s.on_quote(quote(90_000.0), NOW)
     assert res["status"] == "halted"
+
+
+def test_drop_guard_defers_new_cycle_then_resumes(tmp_path):
+    s = halted_strategy(tmp_path)
+    s.drop_guard_pct = 0.02
+    s._px_hist = [(NOW - 600_000, 90_000.0)]                     # son saatte yüksek fiyat
+    res = s.on_quote(quote(87_000.0, NOW), NOW)                  # ~3.3% düşüş
+    assert res["status"] == "halted"
+    assert any(e.kind == "cycle_wait_drop" for e in s.paper.events)
+    later = NOW + 4_000_000                                      # düşüş penceresi geçti
+    res = s.on_quote(quote(87_000.0, later), later)
+    assert res["status"] == "base_opened"
+
+
+def test_drop_guard_off_by_default(tmp_path):
+    s = halted_strategy(tmp_path)
+    s._px_hist = [(NOW - 600_000, 90_000.0)]
+    res = s.on_quote(quote(80_000.0, NOW), NOW)
+    assert res["status"] == "base_opened"

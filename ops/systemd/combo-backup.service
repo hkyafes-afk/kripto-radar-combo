@@ -1,0 +1,6 @@
+[Unit]
+Description=COMBO PAPER runtime yedeği
+
+[Service]
+Type=oneshot
+ExecStart=%h/services/combo-paper/ops/backup/backup-runtime.sh

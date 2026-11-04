@@ -29,6 +29,8 @@ def build_parser():
     parser.add_argument("--restart-after-main-tp", action="store_true",
                         help="MAIN_TP sonrası yeni döngü kur, bandı güncel fiyata ortala.")
     parser.add_argument("--restart-cooldown-s", type=float, default=60.0)
+    parser.add_argument("--drop-guard-pct", type=float, default=0.0,
+                        help="Son 1 saatte bu oranda (ör. 0.02) düşüş varsa yeni döngü bekler (0 = kapalı).")
     return parser
 
 
@@ -59,6 +61,7 @@ def main():
         strategy.cycle_restart = args.restart_after_main_tp
         strategy.cycle_cooldown_ms = int(args.restart_cooldown_s * 1000)
         strategy.lot_equity_fraction = args.lot_equity_fraction
+        strategy.drop_guard_pct = max(0.0, min(0.2, args.drop_guard_pct))
         # In dashboard mode, normal quotes are not checkpointed one-by-one.
         # Strategy events/fills still checkpoint immediately; this interval adds
         # a bounded durability checkpoint even when the market is quiet.

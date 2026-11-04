@@ -1,0 +1,7 @@
+[Unit]
+Description=COMBO PAPER Telegram watchdog
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/combo/telegram.env
+ExecStart=/usr/bin/python3 %h/services/combo-paper/ops/notify/watchdog.py

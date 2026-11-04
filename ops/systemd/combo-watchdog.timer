@@ -1,0 +1,11 @@
+[Unit]
+Description=COMBO PAPER watchdog her 30 saniye
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=30
+AccuracySec=5
+Unit=combo-watchdog.service
+
+[Install]
+WantedBy=timers.target
