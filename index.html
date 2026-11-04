@@ -118,7 +118,7 @@ $('tradesList').addEventListener('click',e=>{const b=e.target.closest('[data-lot
 $('detailClose').addEventListener('click',()=>{$('tradeDetail').classList.remove('open');selectedLotId=null});
 $('tradeDetail').addEventListener('click',e=>{if(e.target===$('tradeDetail')){$('tradeDetail').classList.remove('open');selectedLotId=null}});
 function loadPaperState(){
- fetch(LIVE_URL+"?v="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r}).catch(()=>fetch(STATE_URL+"?v="+Date.now(),{cache:"no-store"})).then(r=>{if(!r.ok)throw Error("state.json HTTP "+r.status);return r.json()}).then(s=>{
+ fetch(LIVE_URL+"?v="+Date.now(),{cache:"no-store",signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)throw 0;return r}).catch(()=>fetch(STATE_URL+"?v="+Date.now(),{cache:"no-store"})).then(r=>{if(!r.ok)throw Error("state.json HTTP "+r.status);return r.json()}).then(s=>{
   if(s.schema_version!==1||s.execution_mode!=="PAPER_ONLY"||s.symbol!=="BTC-USDT-SWAP"||s.private_api_enabled!==false||s.live_order_submission!==false)throw Error("State sözleşmesi/güvenlik doğrulaması başarısız");
   paperState=s;const p=s.paper||{},age=Math.max(0,Date.now()-Number(s.generated_at_ms||0)),stale=age>120000;
   $('equity').textContent=fmt(p.equity_usdt)+" USDT";$('pnl').textContent=fmt(Number(p.net_after_fees_usdt||0)+Number(p.unrealized_gross_usdt||0))+" USDT";
