@@ -8,7 +8,7 @@ Type=simple
 WorkingDirectory=%h/services/combo-paper
 Environment=PYTHONUNBUFFERED=1
 UMask=0077
-ExecStart=%h/services/combo-paper/.venv/bin/python -m runner.main --state-dir ./runtime --dashboard-state ./state.json --dashboard-interval 5 --checkpoint-interval 60
+ExecStart=%h/services/combo-paper/.venv/bin/python -m runner.main --state-dir ./runtime --dashboard-state ./state.json --dashboard-interval 1 --checkpoint-interval 60
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGINT

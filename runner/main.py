@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
     if args.smoke_seconds < 0 or args.smoke_seconds > 600:
         parser.error("--smoke-seconds must be between 0 and 600")
-    if not 5 <= args.dashboard_interval <= 300:
+    if not 1 <= args.dashboard_interval <= 300:
         parser.error("--dashboard-interval must be between 5 and 300 seconds")
     if not 15 <= args.checkpoint_interval <= 3600:
         parser.error("--checkpoint-interval must be between 15 and 3600 seconds")
