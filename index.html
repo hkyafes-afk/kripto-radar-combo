@@ -235,9 +235,7 @@ function drawBtc(){
   const items=[];/* sağ sütun etiketleri */
   items.push({y:y(px),t:F1.format(px),c:"#ff3fa4",f:"#fff",pri:0});
   if(s){
-    const P=s.paper||{},C=s.config||{},tpP=num((P.tp_order||{}).price),stp=num(P.hard_stop_price)||num(C.hard_stop_price)||num(C.low_price)*.99;
-    [[tpP,"HEDEF ","#3CCFAE","3 3"],[stp,"STOP ","#FF6B7A","3 3"]].forEach(m=>{if(m[0]&&inR(m[0])){sv("line",{x1:0,x2:PW,y1:y(m[0]),y2:y(m[0]),stroke:m[2],"stroke-width":1,"stroke-dasharray":m[3],opacity:.75},svg);items.push({y:y(m[0]),t:m[1]+F0.format(m[0]),c:m[2],f:"#06101c",pri:2})}});
-    const lb=[...buys.slice(0,2)],ls=[...sells.slice(0,2)];
+        const lb=[...buys.slice(0,2)],ls=[...sells.slice(0,2)];
     ords.forEach(o=>{const p=num(o.price);if(!inR(p))return;const col=o.side==="buy"?"#F2B544":"#3CCFAE";
       if(lb.includes(o)||ls.includes(o)){sv("line",{x1:0,x2:PW,y1:y(p),y2:y(p),stroke:col,"stroke-width":1,"stroke-dasharray":"5 4",opacity:.85},svg);items.push({y:y(p),t:(o.side==="buy"?"ALIŞ ":"SATIŞ ")+F1.format(p),c:col,f:"#06101c",pri:3})}
       else sv("line",{x1:PW-7,x2:PW,y1:y(p),y2:y(p),stroke:col,"stroke-width":1.6,opacity:.8},svg)});
