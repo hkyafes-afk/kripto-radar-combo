@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://34-187-114-109.sslip.io https://raw.githubusercontent.com; img-src data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://www.okx.com https://34-187-114-109.sslip.io https://raw.githubusercontent.com; img-src data:">
 <title>COMBO</title>
 <style>
 :root{
@@ -182,6 +182,14 @@ main{position:relative}
 .sysb{font:600 12px var(--ui);padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--sell) 18%,transparent);color:var(--sell)}
 .sysb.warn{background:color-mix(in srgb,var(--loss) 18%,transparent);color:var(--loss)}
 .dist>div:nth-child(odd){border-left:0;padding-left:0}.dist>div:nth-child(n+3){border-top:1px solid var(--line);margin-top:10px}.dist{grid-template-columns:repeat(2,1fr)}.bal .lab #balv{order:3;margin-left:auto}.bal .lab{justify-content:flex-start}
+
+.btc{margin-top:18px;padding:12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--sell) 45%,transparent);background:color-mix(in srgb,var(--sell) 4%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--sell) 12%,transparent)}
+.btc .lab{display:flex;align-items:center;gap:6px}.btc .lab #btcp{order:3;margin-left:auto;font-size:15px;color:var(--ink)}
+.tfs{display:flex;gap:6px;margin:8px 0}.tfs button{all:unset;cursor:pointer;flex:1;text-align:center;padding:6px 0;border-radius:8px;border:1px solid var(--line);font:700 12.5px var(--num);color:var(--mute);transition:all .2s;-webkit-tap-highlight-color:transparent}
+.tfs button.on{background:#ff3fa4;border-color:#ff3fa4;color:#fff;box-shadow:0 0 14px #ff3fa488}
+.ohlc{font-size:12px;color:var(--mute);min-height:18px}
+#bc{width:100%;height:auto;display:block;touch-action:pan-y;user-select:none}
+#bc .bd{transition:y .25s,height .25s}
 @media (prefers-reduced-motion:reduce){.brand,.trk,.hd,.glitch{animation:none!important}.cdl .lastl,#ctl .bot,#ctl .bubg,#ctl .blink{animation:none!important}.ctl,#ctl .ln,#ctl .halo,#ctl .eng{animation:none!important}main>*,body::before,.goal i,svg .c,.eq span{animation:none!important}svg .c{stroke-dashoffset:0}.px,.goal i{transition:none}.ok .dot{animation:none}}
 </style>
 </head>
@@ -216,13 +224,12 @@ main{position:relative}
     <div><b id="d4">—</b>Boş teminat</div>
   </div>
 
-  <section class="cdl" aria-label="Canlı mum">
-    <div class="lab" data-info="candles">BTC fiyat · 5 sn'lik mumlar</div>
-    <svg id="cd" viewBox="0 0 360 150" role="img" aria-label="Canlı mum grafiği"></svg>
-  </section>
-  <section class="bal" aria-label="Bakiye eğrisi">
-    <div class="lab" data-info="balance"><span>Bakiye · canlı</span> <span class="mono" id="balv"></span></div>
-    <svg id="bl" viewBox="0 0 360 120" preserveAspectRatio="none" role="img" aria-label="Bakiye eğrisi"></svg>
+  <section class="btc" aria-label="BTC grafiği">
+    <div class="lab" data-info="btc"><span>BTC-USDT-SWAP</span> <span class="mono" id="btcp"></span></div>
+    <div class="tfs" id="tfs" role="tablist"></div>
+    <div class="ohlc mono" id="ohlc">&nbsp;</div>
+    <svg id="bc" viewBox="0 0 360 230" role="img" aria-label="BTC mum grafiği"></svg>
+    <div class="mute" id="btcs" style="font-size:12px;margin-top:4px">Yükleniyor…</div>
   </section>
 
   <h2 data-info="grid">Grid</h2>
@@ -513,8 +520,7 @@ function ctl(s,age,src){
   if(Math.random()<.15)ping("pub",true);
   $("d4").textContent="%"+F0.format(fr*100);$("d4").className=fr<0.25?"down":"up";
   {const bad=[!fh,!!P.halted,age>300].filter(Boolean).length,warn=(fr<0.25||age>60)?1:0,sb=$("sysb");sb.textContent=bad?"sorun var":(warn?"dikkat":"hepsi normal");sb.className="sysb"+(bad||warn?" warn":"")}
-  pushPx(px,Date.now());drawCandles();
-  eqH.push(num(P.equity_usdt));if(eqH.length>150)eqH.shift();drawBal();tw($("balv"),num(P.equity_usdt),usd);ticker(s);
+  btcTick(px);
   if(fr<0.25&&Math.random()<.1)bubble("risk","teminat az!","#FF6B7A");
   lastPx=px;lastFills=nf}
 const INFO={
@@ -522,8 +528,9 @@ hero:"Öz sermaye = başlangıç sermayesi + gerçekleşen kâr + açık pozisyo
 stats:"Gerçekleşen: kapanmış işlemlerden gelen kâr. Açık pozisyon: şu an elde tutulan lotların anlık kâr/zararı (satılınca gerçekleşir). Bugün kapanan: bugün kapanan işlemlerin net kârı.",
 costs:"Şimdiye kadar ödenen toplam komisyon ve funding. Yukarıdaki kâr rakamları bunlar düşüldükten sonraki değerlerdir. Boş teminat %15'in altına inerse yeni alış emri açılmaz.",
 risk:"Stop: fiyat bu seviyeye inerse sistem pozisyonu kapatıp kalıcı durur. Kâr hedefine: ortalama girişin %1,5 üstü; ulaşınca tüm pozisyon kapanır ve yeni döngü başlar. Grid bandı: alış-satış çizgilerinin alt ve üst sınırı. Boş teminat: yeni emirler için kalan güvenli marj.",
-candles:"Her mum 5 saniyelik fiyat hareketi: yeşil yükseliş, kırmızı düşüş, ince çizgi o aralıktaki en yüksek ve en düşük fiyat. Mumlar sayfa açıkken oluşur.",
-balance:"Öz sermayenin sayfa açık kaldığı süredeki canlı çizgisi. Yükselen çizgi kârda, alçalan zararda olduğunu gösterir.",
+candlesOld:"Her mum 5 saniyelik fiyat hareketi: yeşil yükseliş, kırmızı düşüş, ince çizgi o aralıktaki en yüksek ve en düşük fiyat. Mumlar sayfa açıkken oluşur.",
+btc:"Gerçek BTC-USDT-SWAP fiyat grafiği (OKX). Üstteki düğmelerle zaman aralığını seç: 1 dakika, 15 dakika, 1 saat, günlük, aylık. Her mum o aralığın açılış, en yüksek, en düşük ve kapanışını gösterir; yeşil yükseliş, kırmızı düşüş. Alttaki çubuklar işlem hacmi. Grafiğe dokunup sürükleyince o mumun değerleri görünür. Son mum canlı güncellenir.",
+balanceOld:"Öz sermayenin sayfa açık kaldığı süredeki canlı çizgisi. Yükselen çizgi kârda, alçalan zararda olduğunu gösterir.",
 grid:"Yatay çizgiler grid seviyeleridir (aralarında %0,6). Sarı halka: bekleyen alış. Yeşil nokta: bekleyen satış. Beyaz baklava: açık lot. Beyaz etiket: güncel fiyat.",
 lots:"Alınmış ama henüz satılmamış parçalar. Her biri bir üst seviyede satış emri bekler. Detay için satıra dokun.",
 fills:"Gerçekleşen son 10 işlem. Satış satırındaki tutar o işlemin net kârıdır. Detay için satıra dokun.",
@@ -538,6 +545,50 @@ document.querySelectorAll("[data-info]").forEach(h=>{
 const OPEN=new Set();
 document.addEventListener("click",e=>{const r=e.target.closest&&e.target.closest(".row");if(r&&r.querySelector(".det")){r.classList.toggle("open");r.classList.contains("open")?OPEN.add(r.dataset.k):OPEN.delete(r.dataset.k)}});
 
+/* gerçek BTC grafiği (OKX public REST) */
+const TFS=[["1m","1dk",5000],["15m","15dk",15000],["1H","1sa",30000],["1D","Günlük",60000],["1M","Aylık",120000]];
+let tf="15m",bars=[],btcPx=null,btcBusy=0,btcSel=-1;
+const TFNAME={"1m":"1 dakikalık","15m":"15 dakikalık","1H":"1 saatlik","1D":"günlük","1M":"aylık"};
+(function(){const box=$("tfs");TFS.forEach(t=>{const b=document.createElement("button");b.type="button";b.textContent=t[1];b.dataset.tf=t[0];if(t[0]===tf)b.className="on";
+  b.addEventListener("click",()=>{tf=t[0];btcSel=-1;bars=[];box.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));$("btcs").textContent="Yükleniyor…";loadBars()});box.appendChild(b)})})();
+async function loadBars(){
+  const my=tf,id=++btcBusy;
+  try{
+    const r=await fetch("https://www.okx.com/api/v5/market/candles?instId=BTC-USDT-SWAP&bar="+my+"&limit=120",{cache:"no-store",signal:AbortSignal.timeout(6000)});
+    const j=await r.json();if(id!==btcBusy||my!==tf)return;
+    if(j.code!=="0"||!Array.isArray(j.data))throw new Error("veri yok");
+    bars=j.data.map(d=>({t:+d[0],o:+d[1],h:+d[2],l:+d[3],c:+d[4],v:+d[5]})).filter(x=>isFinite(x.o+x.h+x.l+x.c)).reverse();
+    $("btcs").textContent=TFNAME[my]+" mumlar · OKX · "+bars.length+" mum";
+    drawBtc()
+  }catch(e){if(id===btcBusy)$("btcs").textContent="Grafik verisi alınamadı, tekrar deneniyor…"}}
+function fmtT(t){const d=new Date(t);if(tf==="1M")return d.toLocaleDateString("tr-TR",{month:"short",year:"2-digit"});if(tf==="1D")return d.toLocaleDateString("tr-TR",{day:"2-digit",month:"short"});return d.toLocaleString("tr-TR",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
+function drawBtc(){
+  const svg=$("bc");if(!bars.length)return;svg.textContent="";
+  const W=360,H=230,pr=48,vh=34,ph=H-vh-16,n=bars.length,cw=(W-pr)/n;
+  let hi=-1e9,lo=1e9,vm=0;bars.forEach(c=>{hi=Math.max(hi,c.h);lo=Math.min(lo,c.l);vm=Math.max(vm,c.v)});
+  const pad=(hi-lo)*.06||1;hi+=pad;lo-=pad;const y=v=>6+ph*(1-(v-lo)/(hi-lo));
+  for(let k=0;k<5;k++){const v=lo+(hi-lo)*k/4,yy=y(v);sv("line",{x1:0,x2:W-pr,y1:yy,y2:yy,stroke:"var(--line)","stroke-width":.5,"stroke-opacity":.55},svg);
+    sv("text",{x:W-pr+4,y:yy+3,fill:"var(--mute)","font-size":8},svg).textContent=F0.format(v)}
+  bars.forEach((c,i)=>{const x=i*cw+cw/2,up=c.c>=c.o,col=up?"var(--sell)":"var(--loss)";
+    sv("rect",{x:x-cw*.34,width:cw*.68,y:H-14-c.v/vm*vh,height:Math.max(.5,c.v/vm*vh),fill:col,opacity:.28},svg);
+    sv("line",{x1:x,x2:x,y1:y(c.h),y2:y(c.l),stroke:col,"stroke-width":1.1},svg);
+    sv("rect",{class:"bd",x:x-cw*.34,width:cw*.68,y:Math.min(y(c.o),y(c.c)),height:Math.max(1.2,Math.abs(y(c.o)-y(c.c))),fill:col},svg)});
+  const step=Math.max(1,Math.round(n/4));for(let i=Math.floor(step/2);i<n;i+=step)sv("text",{x:i*cw+cw/2,y:H-2,fill:"var(--mute)","font-size":7.5,"text-anchor":"middle"},svg).textContent=fmtT(bars[i].t);
+  const last=bars[n-1],ly=y(last.c);
+  sv("line",{class:"lastl",x1:0,x2:W-pr+2,y1:ly,y2:ly},svg);
+  const g=sv("g",{},svg);sv("rect",{x:W-pr+2,y:ly-7,width:pr-2,height:14,rx:3,fill:"#ff3fa4"},g);
+  sv("text",{x:W-pr+5,y:ly+3,fill:"#fff","font-size":8.5,"font-weight":700},g).textContent=F1.format(last.c);
+  if(btcSel>=0&&bars[btcSel]){const x=btcSel*cw+cw/2;sv("line",{x1:x,x2:x,y1:0,y2:H-14,stroke:"#ff3fa4","stroke-width":.8,"stroke-dasharray":"3 3"},svg)}
+  const c=bars[btcSel>=0?btcSel:n-1];
+  $("ohlc").innerHTML=fmtT(c.t)+" &nbsp;A "+F1.format(c.o)+" &nbsp;Y "+F1.format(c.h)+" &nbsp;D "+F1.format(c.l)+" &nbsp;K <span class=\""+(c.c>=c.o?"up":"down")+"\">"+F1.format(c.c)+"</span> &nbsp;"+sgn((c.c/c.o-1)*100,2)+"%"}
+(function(){const svg=$("bc");
+  const pick=e=>{const r=svg.getBoundingClientRect(),x=(e.touches?e.touches[0].clientX:e.clientX)-r.left,W=360,pr=48,cw=(W-pr)/Math.max(1,bars.length),i=Math.floor(x/r.width*W/cw);btcSel=(i<0||i>=bars.length)?-1:i;drawBtc()};
+  svg.addEventListener("pointerdown",pick);svg.addEventListener("pointermove",e=>{if(e.pressure>0||e.buttons)pick(e)});
+  svg.addEventListener("pointerleave",()=>{if(btcSel>=0){btcSel=-1;drawBtc()}})})();
+function btcTick(px){
+  btcPx=px;$("btcp").textContent=F1.format(px);
+  const l=bars[bars.length-1];if(l&&isFinite(px)&&px>0){l.c=px;l.h=Math.max(l.h,px);l.l=Math.min(l.l,px);if(btcSel<0)drawBtc()}}
+let btcTimer=0;(function loop(){const t=TFS.find(x=>x[0]===tf);loadBars().finally(()=>{btcTimer=setTimeout(loop,t?t[2]:15000)})})();
 /* arka plan ağı + patlama */
 const bg=$("bg"),bx=bg.getContext("2d"),RM=matchMedia("(prefers-reduced-motion:reduce)").matches;
 let BW=0,BH=0,pts=[],sparks=[];
