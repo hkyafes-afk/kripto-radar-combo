@@ -172,6 +172,7 @@ main{position:relative}
 .ib:active,.ib.on{background:#ff3fa4;border-color:#ff3fa4;color:#fff;box-shadow:0 0 12px #ff3fa4}
 .info{margin:8px 0 12px;padding:10px 12px;border-left:3px solid #ff3fa4;background:color-mix(in srgb,#ff3fa4 8%,transparent);border-radius:0 10px 10px 0;font:400 13px/1.5 var(--ui);color:var(--ink);text-transform:none;letter-spacing:0;animation:rise .3s ease both}
 .row{cursor:pointer;position:relative}.row.ev{cursor:default}
+.sellrow{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}.sellrow .hk{font:700 12px var(--num);padding:1px 8px;border-radius:99px;background:color-mix(in srgb,currentColor 14%,transparent)}
 .det{display:none;grid-column:1/-1;width:100%;margin-top:8px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--ink) 6%,transparent);font:400 12.5px/1.6 var(--ui);color:var(--mute)}
 .row.open .det{display:block;animation:rise .25s ease both}
 .det .kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}.det .kv small{display:block;font-size:11.5px;color:var(--mute)}.det .kv b{font:700 14px var(--num);color:var(--ink)}
@@ -408,7 +409,8 @@ function lotsList(s){
     const left=el("div");
     left.appendChild(el("span","n",F1.format(num(l.entry_price))));
     left.appendChild(document.createElement("br"));
-    left.appendChild(el("small",null,F4.format(num(l.qty))+" BTC · "+dt(num(l.opened_ts_ms))+(tgt?" · satış "+F1.format(num(tgt.price))+" · HK "+sgn(lotGain(s,l,tgt))+"$":"")));
+    left.appendChild(el("small",null,F4.format(num(l.qty))+" BTC · "+dt(num(l.opened_ts_ms))));
+    if(tgt){left.appendChild(document.createElement("br"));const q=el("small","sellrow");q.appendChild(el("span",null,"satış "+F1.format(num(tgt.price))));q.appendChild(el("span","hk "+sc(lotGain(s,l,tgt)),"HK "+sgn(lotGain(s,l,tgt))+" $"));left.appendChild(q)}
     const right=el("div","r n "+sc(l.unrealized_gross_usdt),sgn(l.unrealized_gross_usdt)+" USDT");
     r.appendChild(left);r.appendChild(right);
     const d=lotDetail(s,l,tgt);
