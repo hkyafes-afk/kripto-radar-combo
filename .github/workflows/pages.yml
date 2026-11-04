@@ -5,6 +5,7 @@ on:
     paths:
       - 'index.html'
       - 'v2.html'
+      - 'home.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 permissions:
