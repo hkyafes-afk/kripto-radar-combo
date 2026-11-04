@@ -176,7 +176,6 @@ main{position:relative}
 .row.open .det{display:block;animation:rise .25s ease both}
 .det .kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}.det .kv small{display:block;font-size:11.5px;color:var(--mute)}.det .kv b{font:700 14px var(--num);color:var(--ink)}
 .det .note{margin-top:10px;font-size:11.5px}.det .sec{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}.det .sec>b{color:var(--ink);font-size:13px}.det .ln3{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:12px;border-bottom:1px dashed var(--line)}.det .ln3 span:last-child{font-family:var(--num);color:var(--ink);white-space:nowrap}
-.tpl{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(60,207,174,.38);background:rgba(60,207,174,.07);font:13px/1.5 var(--ui);color:var(--ink)}
 
 .row:has(.det){flex-wrap:wrap}
 .fold{margin-top:18px;border-top:1px solid var(--line);padding-top:10px}
@@ -230,7 +229,6 @@ main{position:relative}
     <div><b id="d3">—</b>Grid bandı</div>
     <div><b id="d4">—</b>Boş teminat</div>
   </div>
-  <div class="tpl" id="tpl"></div>
 
   <section class="btc" aria-label="BTC grafiği">
     <div class="lab" data-info="btc">BTC fiyat grafiği</div>
@@ -371,6 +369,8 @@ function ladder(s,tr){
   $("d3").textContent=F0.format(low)+"–"+F0.format(high);
 }
 
+function lotGain(s,l,tgt){const C=s.config||{},sp=num(tgt.price),q=num(l.qty),ef=(s.fills||[]).filter(f=>f.lot_id===l.lot_id&&f.side==="buy").reduce((a,f)=>a+num(f.fee_usdt),0);
+  return (sp-num(l.entry_price))*q-sp*q*(num(C.maker_fee_pct)||0.02)/100-ef}
 function lotDetail(s,l,tgt){
   const P=s.paper||{},C=s.config||{},px=num(s.market.last);
   const rel=(s.fills||[]).filter(f=>f.lot_id===l.lot_id);
@@ -396,14 +396,6 @@ function lotDetail(s,l,tgt){
   sec("Gerçekleşen dolumlar ("+rel.length+")",rel.slice().sort((a,b)=>num(a.ts_ms)-num(b.ts_ms)).map(f=>line((f.side==="buy"?"ALIŞ":"SATIŞ")+" · "+(KIND[f.role]||f.role||"")+" · "+dt(num(f.ts_ms))+":"+String(new Date(num(f.ts_ms)).getSeconds()).padStart(2,"0"),F1.format(num(f.price))+" × "+F4.format(num(f.qty)))));
   return d}
 
-function tpInfo(s){
-  const P=s.paper||{},C=s.config||{},lots=s.lots||[],tp=num((P.tp_order||{}).price);
-  const q=num(P.position_qty_btc)||lots.reduce((a,l)=>a+num(l.qty),0);
-  const avg=num(P.avg_entry_price)||(q>0?lots.reduce((a,l)=>a+num(l.entry_price)*num(l.qty),0)/q:0);
-  if(!tp||!(q>0)||!(avg>0))return null;
-  const gross=(tp-avg)*q,fee=tp*q*(num(C.maker_fee_pct)||0.02)/100,fund=num(P.funding_fees_usdt);
-  return {tp,q,avg,net:gross-fee,gross,fee}}
-function tpLine(s){const t=tpInfo(s);return t?"Kâr hedefi "+F1.format(t.tp)+" fiyatına ulaşılınca tüm pozisyon kapanır: tahmini kâr +"+F2.format(t.net)+" USDT (ort. giriş "+F1.format(t.avg)+" · "+t.q.toFixed(4)+" BTC · çıkış komisyonu düşülmüş).":"Açık pozisyon yok; alış gelince kâr hedefi tutarı burada hesaplanır."}
 
 function lotsList(s){
   const box=$("lots");box.textContent="";
@@ -416,7 +408,7 @@ function lotsList(s){
     const left=el("div");
     left.appendChild(el("span","n",F1.format(num(l.entry_price))));
     left.appendChild(document.createElement("br"));
-    left.appendChild(el("small",null,F4.format(num(l.qty))+" BTC · "+dt(num(l.opened_ts_ms))+(tgt?" · satış "+F1.format(num(tgt.price)):"")));
+    left.appendChild(el("small",null,F4.format(num(l.qty))+" BTC · "+dt(num(l.opened_ts_ms))+(tgt?" · satış "+F1.format(num(tgt.price))+" · HK "+sgn(lotGain(s,l,tgt))+"$":"")));
     const right=el("div","r n "+sc(l.unrealized_gross_usdt),sgn(l.unrealized_gross_usdt)+" USDT");
     r.appendChild(left);r.appendChild(right);
     const d=lotDetail(s,l,tgt);
@@ -562,19 +554,18 @@ function ctl(s,age,src){
   $("d4").textContent="%"+F0.format(fr*100);$("d4").className=fr<0.25?"down":"up";
   {const bad=[!fh,!!P.halted,age>300].filter(Boolean).length,warn=(fr<0.25||age>60)?1:0,sb=$("sysb");sb.textContent=bad?"sorun var":(warn?"dikkat":"hepsi normal");sb.className="sysb"+(bad||warn?" warn":"")}
   btcTick(px);
-  $("tpl").textContent=tpLine(s);if(INFOEL.risk)INFOEL.risk.textContent=INFO.risk+" "+tpLine(s);
   if(fr<0.25&&Math.random()<.1)bubble("risk","teminat az!","#FF6B7A");
   lastPx=px;lastFills=nf}
 const INFO={
 hero:"Öz sermaye = başlangıç sermayesi + gerçekleşen kâr + açık pozisyonun anlık kâr/zararı − komisyon ve funding. Gerçek para yok, PAPER simülasyon. Çubuk, sermayenin 2 katına ne kadar yaklaşıldığını gösterir.",
 stats:"Gerçekleşen: kapanmış işlemlerden gelen kâr. Açık pozisyon: şu an elde tutulan lotların anlık kâr/zararı (satılınca gerçekleşir). Bugün kapanan: bugün kapanan işlemlerin net kârı.",
 costs:"Şimdiye kadar ödenen toplam komisyon ve funding. Yukarıdaki kâr rakamları bunlar düşüldükten sonraki değerlerdir. Boş teminat %15'in altına inerse yeni alış emri açılmaz.",
-risk:"Stop: fiyat bu seviyeye inerse sistem pozisyonu kapatıp kalıcı durur. Kâr hedefine: ortalama girişin %1,5 üstü; ulaşınca tüm pozisyon kapanır ve yeni döngü başlar (hedef kâr tutarı aşağıda). Grid bandı: alış-satış çizgilerinin alt ve üst sınırı. Boş teminat: yeni emirler için kalan güvenli marj.",
+risk:"Stop: fiyat bu seviyeye inerse sistem pozisyonu kapatıp kalıcı durur. Kâr hedefine: ortalama girişin %1,5 üstü; ulaşınca tüm pozisyon kapanır ve yeni döngü başlar. Grid bandı: alış-satış çizgilerinin alt ve üst sınırı. Boş teminat: yeni emirler için kalan güvenli marj.",
 candlesOld:"Her mum 5 saniyelik fiyat hareketi: yeşil yükseliş, kırmızı düşüş, ince çizgi o aralıktaki en yüksek ve en düşük fiyat. Mumlar sayfa açıkken oluşur.",
 btc:"Seçili aralıktaki BTC-USDT-SWAP fiyat çizgisi (OKX). Düğmelerle 1 dakika, 15 dakika, 1 saat ya da günlük aralığı seç. Yüzde değişim, seçili aralığın başından bugüne farkı gösterir. Mum grafiği, bekleyen emirler ve açık işlem girişleri ana sayfadadır.",
 balanceOld:"Öz sermayenin sayfa açık kaldığı süredeki canlı çizgisi. Yükselen çizgi kârda, alçalan zararda olduğunu gösterir.",
 grid:"Yatay çizgiler grid seviyeleridir (aralarında %0,6). Sarı halka: bekleyen alış. Yeşil nokta: bekleyen satış. Beyaz baklava: açık lot. Beyaz etiket: güncel fiyat.",
-lots:"Alınmış ama henüz satılmamış parçalar. Her biri bir üst seviyede satış emri bekler. Detay için satıra dokun.",
+lots:"Alınmış ama henüz satılmamış parçalar. HK = hedef kâr: satış emri dolarsa bu lottan gelecek tahmini net kâr (dolar). Her biri bir üst seviyede satış emri bekler. Detay için satıra dokun.",
 fills:"Gerçekleşen son 10 işlem. Satış satırındaki tutar o işlemin net kârıdır. Detay için satıra dokun.",
 events:"Motorun önemli kararları: yeni döngü, durma, risk uyarısı gibi.",
 sys:"Veri: OKX fiyat akışı. Grid: bekleyen emir sayısı. Risk: boş teminat oranı. İşlem: toplam dolum sayısı. Yayın: verinin kaç saniye önce yazıldığı. Yeşil normal, sarı dikkat, kırmızı sorun."

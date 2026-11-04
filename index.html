@@ -70,7 +70,6 @@ section:nth-of-type(2){animation-delay:.1s}section:nth-of-type(3){animation-dela
 .lg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:11.5px;color:var(--mute)}.lg span{display:inline-flex;align-items:center;gap:5px}
 .lg i{display:inline-block;width:0;height:0}.lg .tb{border:5px solid transparent;border-bottom:8px solid #F2B544;border-top:0}.lg .ts{border:5px solid transparent;border-top:8px solid #3CCFAE;border-bottom:0}
 .lg .ob,.lg .os,.lg .en{width:16px;height:0;border-top:2px dashed #F2B544}.lg .os{border-color:#3CCFAE}.lg .en{border-top:2px solid #4cc9ff}
-.tpl{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(60,207,174,.38);background:rgba(60,207,174,.07);font:13px/1.5 var(--ui)}
 /* gezinme */
 .nav{display:grid;grid-template-columns:1fr;gap:12px}
 .nav a{display:block;padding:16px;border-radius:18px;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:linear-gradient(135deg,rgba(255,63,164,.16),rgba(76,201,255,.08));position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
@@ -101,7 +100,6 @@ footer{margin-top:26px;text-align:center;font-size:12px;color:var(--mute)}
       <div class="g"><svg viewBox="0 0 86 86"><circle class="tr" cx="43" cy="43" r="34"/><circle class="fg" id="g2" cx="43" cy="43" r="34" stroke="#4cc9ff" style="color:#4cc9ff"/></svg><b id="g2t">—</b><span>Boş teminat</span></div>
       <div class="g"><svg viewBox="0 0 86 86"><circle class="tr" cx="43" cy="43" r="34"/><circle class="fg" id="g3" cx="43" cy="43" r="34" stroke="#F2B544" style="color:#F2B544"/></svg><b id="g3t">—</b><span>Stop güvenliği</span></div>
     </div>
-    <div class="tpl" id="tpl"></div>
   </section>
 
   <section>
@@ -262,14 +260,6 @@ function drawBtc(){
 function btcTick(px){$("btcp").textContent=F1.format(px);const l=bars[bars.length-1];if(l&&px>0){l.c=px;l.h=Math.max(l.h,px);l.l=Math.min(l.l,px)}if(sel<0)drawBtc()}
 (function loop(){const t=TFS.find(x=>x[0]===tf);loadBars().finally(()=>setTimeout(loop,t?t[2]:15000))})();
 
-function tpInfo(s){
-  const P=s.paper||{},C=s.config||{},lots=s.lots||[],tp=num((P.tp_order||{}).price);
-  const q=num(P.position_qty_btc)||lots.reduce((a,l)=>a+num(l.qty),0);
-  const avg=num(P.avg_entry_price)||(q>0?lots.reduce((a,l)=>a+num(l.entry_price)*num(l.qty),0)/q:0);
-  if(!tp||!(q>0)||!(avg>0))return null;
-  const gross=(tp-avg)*q,fee=tp*q*(num(C.maker_fee_pct)||0.02)/100,fund=num(P.funding_fees_usdt);
-  return {tp,q,avg,net:gross-fee,gross,fee}}
-function tpLine(s){const t=tpInfo(s);return t?"Kâr hedefi "+F1.format(t.tp)+" fiyatına ulaşılınca tüm pozisyon kapanır: tahmini kâr +"+F2.format(t.net)+" USDT (ort. giriş "+F1.format(t.avg)+" · "+t.q.toFixed(4)+" BTC · çıkış komisyonu düşülmüş).":"Açık pozisyon yok; alış gelince kâr hedefi tutarı burada hesaplanır."}
 
 /* ---------- işlemler ---------- */
 let fSig="";
@@ -299,7 +289,7 @@ function render(s,src){
   gauge("g1",(eq-cap)/cap,F0.format(Math.max(0,(eq-cap)/cap*100))+"%");
   gauge("g2",fr,F0.format(fr*100)+"%");
   const sd=px>0&&stop>0?(px/stop-1):0;gauge("g3",sd/.12,"%"+F1.format(sd*100));
-  reactor(s);fills(s);btcTick(px);$("tpl").textContent=tpLine(s);
+  reactor(s);fills(s);btcTick(px);
   $("ft").textContent="PAPER · gerçek emir yok · kaynak: "+src+" · "+new Date(num(s.generated_at_ms)).toLocaleTimeString("tr-TR")}
 function offline(m){$("st").className="st bad";$("stt").textContent=m}
 async function load(){let s=null,src="";
