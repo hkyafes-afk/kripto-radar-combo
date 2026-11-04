@@ -52,9 +52,10 @@ class ComboPaperAdapter:
 
     def _signature(self) -> dict[str, Any]:
         # Tüm ayarlar defter kimliğine dahildir: ücret/stop/tick değişikliği eski defteri sessizce yorumlamasın.
-        return asdict(self.cfg)
+        return asdict(self.__dict__.get("base_cfg", self.cfg))
 
     def _load(self) -> None:
+        self.base_cfg = self.cfg
         path = self.state_path
         if path is None:
             return
@@ -71,6 +72,10 @@ class ComboPaperAdapter:
             return
         if raw.get("schema_version") != 1 or raw.get("config_signature") != self._signature():
             raise RuntimeError("COMBO PAPER defteri sürüm/ayar uyuşmazlığı; otomatik sıfırlama yapılmadı")
+        dyn = raw.get("dynamic_cfg")
+        if dyn:
+            from dataclasses import replace as _replace
+            self.cfg = _replace(self.cfg, **dyn)
         self.position = ComboPosition.from_dict(raw.get("lots") or [])
         self.orders = {
             item["order_id"]: ComboOrder(
@@ -116,6 +121,8 @@ class ComboPaperAdapter:
             "grid_anchor_price": self.grid_anchor_price, "halted": self.halted,
             "halt_reason": self.halt_reason, "tp_triggered": self.tp_triggered,
             "tp_order": self.tp_order, "next_order_id": self.next_order_id,
+            "dynamic_cfg": {"low_price": self.cfg.low_price, "high_price": self.cfg.high_price,
+                            "order_qty_btc": self.cfg.order_qty_btc},
         }
         if self.recovery is not None:
             from uuid import uuid4
@@ -303,6 +310,21 @@ class ComboPaperAdapter:
                 self._event("order_cancelled", reason, now_ms, order.order_id,
                             order.remaining_qty, order.price)
         self.save()
+
+    def reset_cycle(self, now_ms: int) -> bool:
+        # MAIN_TP sonrası yeni döngü: ledger, fill ve PnL toplamları korunur.
+        if self.position.qty > 1e-12 or any(o.active for o in self.orders.values()):
+            return False
+        self.initialized = False
+        self.grid_seeded = False
+        self.grid_anchor_price = None
+        self.halted = False
+        self.halt_reason = None
+        self.tp_triggered = False
+        self.tp_order = None
+        self._event("cycle_restart", "MAIN_TP sonrası yeni döngü başlatıldı", now_ms)
+        self.save()
+        return True
 
     def open_base_market(self, quote: ComboQuote, now_ms: int) -> LongLot | None:
         if self.initialized:

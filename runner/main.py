@@ -22,6 +22,13 @@ def build_parser():
                         help="Seconds between dashboard snapshots in continuous mode (5..300).")
     parser.add_argument("--checkpoint-interval", type=float, default=60.0,
                         help="Maximum interval between durable PAPER checkpoints in continuous mode (15..3600).")
+    parser.add_argument("--paper-capital", type=float, default=None, help="PAPER başlangıç sermayesi (USDT).")
+    parser.add_argument("--leverage", type=float, default=None, help="Simüle kaldıraç (1..10).")
+    parser.add_argument("--lot-equity-fraction", type=float, default=0.0,
+                        help="Lot nominali = öz sermaye x oran (0 = kapalı, 0..0.5).")
+    parser.add_argument("--restart-after-main-tp", action="store_true",
+                        help="MAIN_TP sonrası yeni döngü kur, bandı güncel fiyata ortala.")
+    parser.add_argument("--restart-cooldown-s", type=float, default=60.0)
     return parser
 
 
@@ -31,15 +38,27 @@ def main():
     if args.smoke_seconds < 0 or args.smoke_seconds > 600:
         parser.error("--smoke-seconds must be between 0 and 600")
     if not 1 <= args.dashboard_interval <= 300:
-        parser.error("--dashboard-interval must be between 5 and 300 seconds")
+        parser.error("--dashboard-interval must be between 1 and 300 seconds")
     if not 15 <= args.checkpoint_interval <= 3600:
         parser.error("--checkpoint-interval must be between 15 and 3600 seconds")
     if args.checkpoint_interval < args.dashboard_interval:
         parser.error("--checkpoint-interval must be >= --dashboard-interval")
 
+    if args.leverage is not None and not 1 <= args.leverage <= 10:
+        parser.error("--leverage must be between 1 and 10")
+    if not 0 <= args.lot_equity_fraction <= 0.5:
+        parser.error("--lot-equity-fraction must be between 0 and 0.5")
     root = Path(args.state_dir)
     with RunnerLease(root / "runner.lock"):
-        strategy = ComboStrategy(ComboConfig(), root=root)
+        overrides = {}
+        if args.paper_capital is not None:
+            overrides["paper_capital_usdt"] = args.paper_capital
+        if args.leverage is not None:
+            overrides["leverage_simulation"] = args.leverage
+        strategy = ComboStrategy(ComboConfig(**overrides), root=root)
+        strategy.cycle_restart = args.restart_after_main_tp
+        strategy.cycle_cooldown_ms = int(args.restart_cooldown_s * 1000)
+        strategy.lot_equity_fraction = args.lot_equity_fraction
         # In dashboard mode, normal quotes are not checkpointed one-by-one.
         # Strategy events/fills still checkpoint immediately; this interval adds
         # a bounded durability checkpoint even when the market is quiet.

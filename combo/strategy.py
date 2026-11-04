@@ -20,6 +20,13 @@ class ComboStrategy:
         self.paper = paper or ComboPaperAdapter(self.cfg, root=root)
         self.last_data_issue: str | None = None
         self.persist_each_quote = True
+        paper_cfg = getattr(self.paper, "cfg", self.cfg)
+        if paper_cfg is not self.cfg:
+            self.cfg = paper_cfg
+            self.grid = GridBuilder(self.cfg)
+        self.cycle_restart = False
+        self.cycle_cooldown_ms = 60_000
+        self.lot_equity_fraction = 0.0
 
     def _tp_price(self) -> float | None:
         avg = self.paper.position.avg_entry_price
@@ -175,6 +182,30 @@ class ComboStrategy:
             self._refresh_tp(now_ms)
         self.paper.save()
 
+    def _cycle_cooldown_over(self, now_ms: int) -> bool:
+        last = self.paper.fills[-1].ts_ms if self.paper.fills else 0
+        return now_ms - last >= self.cycle_cooldown_ms
+
+    def _recenter(self, quote: ComboQuote, now_ms: int) -> None:
+        import dataclasses
+        c = self.cfg
+        step, tick = c.grid_step_pct, c.price_tick
+        low = round(round(quote.last / (1.0 + step) ** (c.grid_intervals / 2) / tick) * tick, 1)
+        high = round(round(low * (1.0 + step) ** c.grid_intervals / tick) * tick, 1)
+        qty = c.order_qty_btc
+        if self.lot_equity_fraction > 0:
+            equity = self.paper.equity_usdt(quote.last)
+            qty = round(max(1e-4, math.floor(equity * self.lot_equity_fraction / quote.last / 1e-4) * 1e-4), 4)
+        if (low, high, qty) == (c.low_price, c.high_price, c.order_qty_btc):
+            return
+        new = dataclasses.replace(c, low_price=low, high_price=high, order_qty_btc=qty)
+        self.cfg = new
+        self.paper.cfg = new
+        self.grid = GridBuilder(new)
+        self.paper._event("cycle_recentered", f"Yeni grid bandı {low}-{high}, lot {qty} BTC",
+                          now_ms, qty=qty, price=quote.last)
+        self.paper.save()
+
     def on_quote(self, quote: ComboQuote, now_ms: int | None = None) -> dict[str, Any]:
         now = int(now_ms if now_ms is not None else time.time() * 1000)
         if quote.symbol != self.cfg.symbol:
@@ -217,10 +248,16 @@ class ComboStrategy:
             self._handle_hard_stop(quote, now)
             return {"status": "halted_hard_stop", **self.paper.snapshot()}
 
+        if (self.cycle_restart and self.paper.halted and self.paper.halt_reason == "MAIN_TP"
+                and self._cycle_cooldown_over(now)):
+            self.paper.reset_cycle(now)
+
         if self.paper.halted:
             return {"status": "halted", **self.paper.snapshot()}
 
         if not self.paper.initialized:
+            if self.cycle_restart:
+                self._recenter(quote, now)
             if not (self.cfg.low_price <= quote.last <= self.cfg.high_price
                     and self.cfg.low_price <= quote.ask <= self.cfg.high_price):
                 self.paper._event("base_wait", "Piyasa fiyatı grid bandı dışında; Base Order açılmadı", now,
