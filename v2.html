@@ -63,7 +63,7 @@ h2 .cnt{font:500 13px var(--ui);color:var(--mute)}
 .plot{position:absolute;inset:0}
 .lv{position:absolute;left:var(--ax);right:0;height:0;border-top:1px solid var(--line)}
 .lv.edge{border-top-color:var(--mute)}
-.lv>span{position:absolute;left:calc(var(--ax) * -1);width:calc(var(--ax) - 8px);top:-8px;text-align:right;font:12px var(--num);color:var(--mute);font-variant-numeric:tabular-nums}
+.lv>span{transition:opacity .2s;position:absolute;left:calc(var(--ax) * -1);width:calc(var(--ax) - 8px);top:-8px;text-align:right;font:12px var(--num);color:var(--mute);font-variant-numeric:tabular-nums}
 .rail{position:absolute;left:calc(var(--ax) + (100% - var(--ax)) / 2);top:0;bottom:0;border-left:1px dashed var(--line)}
 .ord{position:absolute;top:-5px;width:10px;height:10px;border-radius:50%;margin-left:-5px}
 .ord.b{border:2px solid var(--buy);background:var(--bg)}
@@ -363,6 +363,8 @@ function ladder(s,tr){
   }
   $("px").style.transform="translateY("+y(price)+"px)";
   $("pxv").textContent=F1.format(price);
+  const py=y(price);
+  plot.querySelectorAll(".lv>span").forEach(sp=>{sp.style.opacity=Math.abs(parseFloat(sp.parentNode.style.top)-py)<16?"0":"1"});
 
   const dStop=(stop/price-1)*100;
   $("d1").textContent=usd(dStop,1)+"%";$("d1").className="down";
