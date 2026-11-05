@@ -59,28 +59,36 @@ main{max-width:560px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 18
 h2{font:600 17px/1.2 var(--ui);margin:36px 0 12px;display:flex;align-items:baseline;gap:10px}
 h2 .cnt{font:500 13px var(--ui);color:var(--mute)}
 
-.ladder{position:relative;margin:4px 0}
+.ladder{position:relative;margin:6px 0 4px;border-radius:12px;overflow:hidden}
 .plot{position:absolute;inset:0}
+.zone{position:absolute;left:var(--ax);right:0}
+.zone.zs{background:color-mix(in srgb,var(--sell) 7%,transparent)}
+.zone.zb{background:color-mix(in srgb,var(--buy) 8%,transparent)}
 .lv{position:absolute;left:var(--ax);right:0;height:0;border-top:1px solid var(--line)}
-.lv.edge{border-top-color:var(--mute)}
-.lv>span{transition:opacity .2s;position:absolute;left:calc(var(--ax) * -1);width:calc(var(--ax) - 8px);top:-8px;text-align:right;font:12px var(--num);color:var(--mute);font-variant-numeric:tabular-nums}
-.rail{position:absolute;left:calc(var(--ax) + (100% - var(--ax)) / 2);top:0;bottom:0;border-left:1px dashed var(--line)}
-.ord{position:absolute;top:-5px;width:10px;height:10px;border-radius:50%;margin-left:-5px}
-.ord.b{border:2px solid var(--buy);background:var(--bg)}
-.ord.s{background:var(--sell)}
-.ord em{position:absolute;left:14px;top:-3px;font:600 11px var(--num);font-style:normal;color:var(--mute)}
-.lot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;background:var(--ink);transform:rotate(45deg)}
+.lv>span{position:absolute;left:calc(var(--ax) * -1);width:calc(var(--ax) - 8px);top:-8px;text-align:right;font:12px var(--num);color:var(--mute);font-variant-numeric:tabular-nums;transition:opacity .2s}
+.lv.has{border-top-color:color-mix(in srgb,var(--ink) 30%,transparent)}
+.lv.has>span{color:var(--ink);font-weight:600}
+.op,.lt{position:absolute;left:calc(var(--ax) + 8px);height:22px;display:flex;align-items:center;gap:7px;padding:0 10px 0 8px;border-radius:5px;font:12px var(--num);font-variant-numeric:tabular-nums;white-space:nowrap;z-index:2}
+.op{border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--bg))}
+.op.b{--c:var(--buy)}.op.s{--c:var(--sell)}
+.op b{font-weight:600;font-size:13px;color:var(--ink)}
+.op span,.op em{color:var(--mute);font-style:normal}
+.op .x{color:var(--ink);font-weight:600}
+.lt{border:1.5px solid var(--ink);background:var(--bg)}
+.lt i{width:8px;height:8px;background:var(--ink);transform:rotate(45deg);flex:none}
+.lt b{font-weight:600;font-size:13px}
+.lt span{color:var(--mute)}
 .mark{position:absolute;left:var(--ax);right:0;height:0;border-top:1.5px dashed}
-.mark.stop{border-color:var(--loss)}.mark.tp{border-color:var(--sell)}
-.mark>span{position:absolute;right:0;top:-18px;font:600 12px var(--num);padding:0 2px;background:var(--bg)}
-.mark.stop>span{color:var(--loss)}.mark.tp>span{color:var(--sell)}
+.mark.stop{border-color:var(--loss)}.mark.tp{border-color:var(--sell)}.mark.avg{border-color:color-mix(in srgb,var(--ink) 55%,transparent)}
+.mark>span{position:absolute;right:6px;top:-19px;font:600 12px var(--num);padding:0 4px;background:var(--bg);border-radius:3px;font-variant-numeric:tabular-nums;z-index:2}
+.mark.stop>span{color:var(--loss)}.mark.tp>span{color:var(--sell)}.mark.avg>span{color:var(--ink)}
 .px{position:absolute;left:0;right:0;top:0;height:0;z-index:3;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
 .px::before{content:"";position:absolute;left:var(--ax);right:0;border-top:2px solid var(--ink)}
 .px>span{position:absolute;left:0;top:-12px;background:var(--flag);color:var(--flagtext);padding:2px 6px;border-radius:3px;font:600 13px var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--mute);margin-top:10px}
 .legend i{display:inline-block;vertical-align:-1px;margin-right:6px}
-.legend .b{width:10px;height:10px;border-radius:50%;border:2px solid var(--buy)}
-.legend .s{width:10px;height:10px;border-radius:50%;background:var(--sell)}
+.legend .b{width:14px;height:9px;border-radius:2px;border-left:3px solid var(--buy);background:color-mix(in srgb,var(--buy) 18%,var(--bg))}
+.legend .s{width:14px;height:9px;border-radius:2px;border-left:3px solid var(--sell);background:color-mix(in srgb,var(--sell) 18%,var(--bg))}
 .legend .l{width:9px;height:9px;background:var(--ink);transform:rotate(45deg)}
 .dist{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border-top:1px solid var(--line)}
 .dist>div{padding:10px 0 0 12px;border-left:1px solid var(--line);font-size:12.5px;color:var(--mute)}
@@ -240,11 +248,11 @@ main{position:relative}
   </section>
 
   <h2 data-info="grid">Grid</h2>
-  <div class="ladder" id="ladder" style="height:640px">
+  <div class="ladder" id="ladder" style="height:560px">
     <div class="plot" id="plot"></div>
     <div class="px" id="px"><span id="pxv">—</span></div>
   </div>
-  <div class="legend"><span><i class="b"></i>Bekleyen alış</span><span><i class="s"></i>Bekleyen satış</span><span><i class="l"></i>Açık lot</span></div>
+  <div class="legend"><span><i class="b"></i>Alış emri</span><span><i class="s"></i>Satış emri</span><span><i class="l"></i>Açık lot</span></div>
 
   <h2 data-info="lots">Açık lotlar <span class="cnt" id="lotcnt"></span></h2>
   <div class="rows" id="lots"></div>
@@ -326,50 +334,74 @@ function status(s,age){
 }
 
 let ladSig="";
+const HL=560;
+let ladDyn=[],ladZ=null;
 function ladder(s,tr){
   const P=s.paper,C=s.config,price=num(s.market.last);
-  const low=num(C.low_price),high=num(C.high_price),stop=num(C.hard_stop_price)||low;
+  const stop=num(C.hard_stop_price)||num(C.low_price);
   const tpO=P.tp_order&&P.tp_order.status==="active"?num(P.tp_order.price):0;
-  const lv=(s.grid_levels||[]).map(g=>({i:g.index,p:num(g.price),o:(g.orders||[]).filter(o=>o.status==="accepted"||o.status==="partially_filled")}));
   const lots=s.lots||[];
-  const dMin=Math.min(stop,price,low)*0.9975,dMax=Math.max(high,price,tpO)*1.0025;
+  const lv=(s.grid_levels||[]).map(g=>({i:g.index,p:num(g.price),o:(g.orders||[]).filter(o=>o.status==="accepted"||o.status==="partially_filled")}));
+  const ords=[];
+  lv.forEach(g=>["buy","sell"].forEach(side=>{
+    const os=g.o.filter(o=>o.side===side);
+    if(os.length)ords.push({side,p:g.p,q:os.reduce((a,o)=>a+(num(o.remaining_qty)||num(o.qty)),0),n:os.length,ids:os.map(o=>o.order_id).join()});
+  }));
+  const lq=lots.reduce((a,l)=>a+num(l.qty),0);
+  const avg=lq>0?lots.reduce((a,l)=>a+num(l.entry_price)*num(l.qty),0)/lq:0;
+  const pts=[price,stop,tpO,avg,...ords.map(o=>o.p),...lots.map(l=>num(l.entry_price))].filter(x=>x>0);
+  const dMin=Math.min(...pts)*0.9985,dMax=Math.max(...pts)*1.006;
   const L0=Math.log(dMax),L1=Math.log(dMin);
-  const y=p=>Math.max(0,Math.min(H,(L0-Math.log(p))/(L0-L1)*H));
-  const sig=JSON.stringify([low,high,stop,tpO,Math.round(dMin),Math.round(dMax),lv.map(x=>[x.i,x.o.map(o=>o.order_id)]),lots.map(l=>l.lot_id)]);
+  const y=p=>Math.max(0,Math.min(HL,(L0-Math.log(p))/(L0-L1)*HL));
+  const sig=JSON.stringify([stop,tpO,Math.round(dMin),Math.round(dMax),ords.map(o=>[o.side,o.p,o.q,o.ids]),lots.map(l=>[l.lot_id,l.qty,l.entry_price])]);
   const plot=$("plot");
+  $("ladder").style.height=HL+"px";
+  const pc=(p)=>sgn((p/price-1)*100,1)+"%";
   if(sig!==ladSig){
-    ladSig=sig;plot.textContent="";
-    plot.appendChild(el("div","rail"));
-    lv.forEach((g,idx)=>{
-      const row=el("div","lv"+(idx===0||idx===lv.length-1?" edge":""));
+    ladSig=sig;plot.textContent="";ladDyn=[];
+    const zs=el("div","zone zs"),zb=el("div","zone zb");
+    plot.appendChild(zs);plot.appendChild(zb);ladZ={zs,zb};
+    const hasP=new Set([...ords.map(o=>o.p),...lots.map(l=>num(l.entry_price))]);
+    lv.forEach(g=>{
+      if(g.p<dMin||g.p>dMax)return;
+      const row=el("div","lv"+(hasP.has(g.p)?" has":""));
       row.style.top=y(g.p)+"px";
-      row.appendChild(el("span",null,F0.format(g.p)));
-      const buys=g.o.filter(o=>o.side==="buy").length,sells=g.o.filter(o=>o.side==="sell").length;
-      const dot=(cl,pct,n)=>{const d=el("i","ord "+cl);d.style.left=pct+"%";if(n>1)d.appendChild(el("em",null,"×"+n));row.appendChild(d)};
-      if(buys)dot("b",22,buys);
-      if(sells)dot("s",78,sells);
+      if(hasP.has(g.p))row.appendChild(el("span",null,F0.format(g.p)));
       plot.appendChild(row);
     });
-    const seen={};
-    lots.forEach(l=>{
-      const p=num(l.entry_price),k=p.toFixed(1);seen[k]=(seen[k]||0)+1;
-      const d=el("i","lot");d.style.top=y(p)+"px";
-      d.style.left="calc(var(--ax) + (100% - var(--ax)) / 2 + "+((seen[k]-1)*14)+"px)";
+    ords.forEach(o=>{
+      const d=el("div","op "+(o.side==="buy"?"b":"s"));d.style.top=(y(o.p)-11)+"px";
+      d.appendChild(el("b",null,F0.format(o.p*o.q)+" $"));
+      d.appendChild(el("span",null,F4.format(o.q)+" BTC"));
+      if(o.n>1)d.appendChild(el("span","x","×"+o.n));
+      const e=el("em",null,pc(o.p));d.appendChild(e);ladDyn.push({e,f:px=>sgn((o.p/px-1)*100,1)+"%"});
       plot.appendChild(d);
     });
-    const mark=(cl,p,label)=>{const m=el("div","mark "+cl);m.style.top=y(p)+"px";m.appendChild(el("span",null,label));plot.appendChild(m)};
-    mark("stop",stop,"Stop "+F0.format(stop));
-    if(tpO)mark("tp",tpO,"Hedef "+F0.format(tpO));
+    lots.forEach(l=>{
+      const ep=num(l.entry_price),q=num(l.qty);
+      const d=el("div","lt");d.style.top=(y(ep)-11)+"px";
+      d.appendChild(el("i"));
+      d.appendChild(el("b",null,"Lot "+F4.format(q)));
+      const e=el("em",null,"");d.appendChild(e);
+      ladDyn.push({e,f:px=>{const g=(px-ep)*q;e.className=sc(g);return sgn(g,2)+" $"}});
+      plot.appendChild(d);
+    });
+    const mark=(cl,p,fn)=>{const m=el("div","mark "+cl);m.style.top=y(p)+"px";const sp=el("span",null,"");m.appendChild(sp);plot.appendChild(m);ladDyn.push({e:sp,f:px=>fn(px)})};
+    if(avg>0&&lots.length)mark("avg",avg,px=>"Ort. giriş "+F0.format(avg));
+    if(tpO)mark("tp",tpO,px=>"Hedef "+F0.format(tpO)+" · "+sgn((tpO/px-1)*100,1)+"%");
+    mark("stop",stop,px=>"Stop "+F0.format(stop)+" · "+sgn((stop/px-1)*100,1)+"%");
   }
-  $("px").style.transform="translateY("+y(price)+"px)";
-  $("pxv").textContent=F1.format(price);
   const py=y(price);
+  $("px").style.transform="translateY("+py+"px)";
+  $("pxv").textContent=F1.format(price);
+  if(ladZ){ladZ.zs.style.top="0px";ladZ.zs.style.height=py+"px";ladZ.zb.style.top=py+"px";ladZ.zb.style.height=(HL-py)+"px"}
+  ladDyn.forEach(d=>{d.e.textContent=d.f(price)});
   plot.querySelectorAll(".lv>span").forEach(sp=>{sp.style.opacity=Math.abs(parseFloat(sp.parentNode.style.top)-py)<16?"0":"1"});
 
   const dStop=(stop/price-1)*100;
   $("d1").textContent=usd(dStop,1)+"%";$("d1").className="down";
   $("d2").textContent=tpO?sgn((tpO/price-1)*100,1)+"%":"—";
-  $("d3").textContent=F0.format(low)+"–"+F0.format(high);
+  $("d3").textContent=F0.format(num(C.low_price))+"–"+F0.format(num(C.high_price));
 }
 
 function lotGain(s,l,tgt){const C=s.config||{},sp=num(tgt.price),q=num(l.qty),ef=(s.fills||[]).filter(f=>f.lot_id===l.lot_id&&f.side==="buy").reduce((a,f)=>a+num(f.fee_usdt),0);
